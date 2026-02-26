@@ -103,3 +103,49 @@ def test_frames_plan_command(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert out.exists()
     assert "frame_candidates=3" in result.stdout
+
+
+def test_clips_extract_command(monkeypatch, tmp_path: Path) -> None:
+    frames = tmp_path / "frames.jsonl"
+    frames.write_text(
+        '{"segment_id":"1","timestamp_s":0.0,"label":"start","reason":"x","confidence":0.9,"clip_start_s":0.0,"clip_end_s":1.2}\n',
+        encoding="utf-8",
+    )
+    out_dir = tmp_path / "clips"
+    manifest = tmp_path / "clips.jsonl"
+
+    def _fake_extract(_video, _candidates, out_dir, reencode=True):
+        out_dir.mkdir(parents=True, exist_ok=True)
+        p = out_dir / "step_1.mp4"
+        p.write_bytes(b"fake")
+        return [
+            {
+                "segment_id": "1",
+                "clip_path": str(p),
+                "clip_start_s": 0.0,
+                "clip_end_s": 1.2,
+                "duration_s": 1.2,
+            }
+        ]
+
+    monkeypatch.setattr(cli, "extract_clips", _fake_extract)
+
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"vid")
+    result = runner.invoke(
+        app,
+        [
+            "clips-extract",
+            "--video",
+            str(video),
+            "--frames",
+            str(frames),
+            "--out-dir",
+            str(out_dir),
+            "--manifest-out",
+            str(manifest),
+        ],
+    )
+    assert result.exit_code == 0
+    assert manifest.exists()
+    assert "clips=1" in result.stdout

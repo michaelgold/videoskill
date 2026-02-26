@@ -9,6 +9,7 @@ description = "Extract structured markdown steps from course recordings"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "imageio-ffmpeg>=0.6.0",
   "pydantic>=2.8.0",
   "pydantic-ai>=1.63.0",
   "typer>=0.12.0",

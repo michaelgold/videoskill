@@ -2,6 +2,7 @@ from pathlib import Path
 
 import typer
 
+from course_step_extractor.clips import extract_clips, read_frames_jsonl, write_clips_jsonl
 from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
 from course_step_extractor.models import Step
 from course_step_extractor.providers import ping_provider
@@ -57,6 +58,20 @@ def frames_plan(
     candidates = plan_frames(parsed, clip_pad_s=clip_pad_s)
     write_frames_jsonl(candidates, out)
     typer.echo(f"frame_candidates={len(candidates)} out={out}")
+
+
+@app.command("clips-extract")
+def clips_extract(
+    video: Path = typer.Option(..., help="Path to source video"),
+    frames: Path = typer.Option(..., help="Path to frame candidates JSONL"),
+    out_dir: Path = typer.Option(..., help="Output directory for clip mp4 files"),
+    manifest_out: Path = typer.Option(..., help="Output clips JSONL manifest"),
+    reencode: bool = typer.Option(True, help="Re-encode clips for compatibility"),
+) -> None:
+    candidates = read_frames_jsonl(frames)
+    rows = extract_clips(video, candidates, out_dir=out_dir, reencode=reencode)
+    write_clips_jsonl(rows, manifest_out)
+    typer.echo(f"clips={len(rows)} out_dir={out_dir} manifest={manifest_out}")
 
 
 @app.command("providers-ping")
