@@ -29,6 +29,14 @@ Turn course recordings into **structured markdown lesson steps** (and later Slid
   - `FrameCandidate`
   - `TutorialStep`
   - `LessonMarkdown`
+- [ ] Expand `TutorialStep` with replication-critical fields:
+  - `instruction_text`
+  - `intent`
+  - `objects_tools_settings`
+  - `expected_outcome`
+  - `failure_modes`
+  - `confidence`
+  - `step_clip_path`
 - [ ] Add strict validators (timestamps, non-empty fields, enums)
 
 ### P0.2 Transcript ingestion
@@ -43,13 +51,21 @@ Turn course recordings into **structured markdown lesson steps** (and later Slid
   - cue words ("now", "next", "then", "add")
   - max segment duration cap
 - [ ] Emit candidate timestamps per segment (start/mid/end)
+- [ ] Output step windows suitable for clip extraction (`clip_start`, `clip_end`)
 
-### P0.4 Extraction
+### P0.4 Visual evidence clips (human inspection)
+- [ ] `clips extract` command
+- [ ] Generate short mp4 per step window (e.g., 3–8s)
+- [ ] Persist clip paths alongside structured step outputs
+- [ ] Add quick QA mode to review clips sequentially
+
+### P0.5 Extraction
 - [ ] `steps extract` command (PydanticAI-backed)
 - [ ] Adapter layer around model client
 - [ ] Strict structured output + retry/repair for invalid objects
+- [ ] Require step fields sufficient for agent replication (action + intent + expected outcome)
 
-### P0.5 Markdown rendering
+### P0.6 Markdown rendering
 - [ ] `markdown render` command
 - [ ] Output sections:
   - title/goals
@@ -57,6 +73,12 @@ Turn course recordings into **structured markdown lesson steps** (and later Slid
   - numbered steps
   - checkpoints
   - pitfalls
+- [ ] Per-step structure should include:
+  - Action
+  - Why (intent)
+  - Expected result
+  - Failure checks
+  - Clip reference/path
 
 ---
 
@@ -104,8 +126,8 @@ Turn course recordings into **structured markdown lesson steps** (and later Slid
 ---
 
 ## Immediate Next 5 Tasks
-1. Implement `TranscriptSegment` and `TutorialStep` models with tests.
+1. Implement `TranscriptSegment` and expanded `TutorialStep` models (including intent/outcome/clip fields) with tests.
 2. Add `transcript parse --input whisper.json --out segments.jsonl`.
-3. Add `frames plan --segments segments.jsonl --out frames.jsonl`.
-4. Scaffold `steps extract` with PydanticAI adapter + mocked tests.
-5. Add `markdown render` and golden markdown snapshot test.
+3. Add `frames plan --segments segments.jsonl --out frames.jsonl` with clip windows.
+4. Add `clips extract --video input.mp4 --frames frames.jsonl --out clips/`.
+5. Scaffold `steps extract` + `markdown render` with golden snapshot tests including clip references.
