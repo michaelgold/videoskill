@@ -5,6 +5,7 @@ import typer
 from course_step_extractor.models import Step
 from course_step_extractor.providers import ping_provider
 from course_step_extractor.settings import AppConfig, validate_config
+from course_step_extractor.transcript import parse_whisper_json, write_segments_jsonl
 
 app = typer.Typer(help="Course step extraction CLI", no_args_is_help=True)
 
@@ -33,6 +34,16 @@ def config_validate(config: Path = typer.Option(Path("config.json"))) -> None:
         f"OK: transcription={payload.transcription.provider}, "
         f"reasoning={payload.reasoning.provider}, vlm={payload.vlm.provider}"
     )
+
+
+@app.command("transcript-parse")
+def transcript_parse(
+    input: Path = typer.Option(..., help="Path to Whisper JSON transcript"),
+    out: Path = typer.Option(..., help="Path to output segments JSONL"),
+) -> None:
+    segments = parse_whisper_json(input)
+    write_segments_jsonl(segments, out)
+    typer.echo(f"parsed_segments={len(segments)} out={out}")
 
 
 @app.command("providers-ping")

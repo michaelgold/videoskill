@@ -74,3 +74,16 @@ def test_providers_ping_command_fails(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(cli, "ping_provider", _fake_ping)
     result = runner.invoke(app, ["providers-ping", "--config", str(path)])
     assert result.exit_code == 1
+
+
+def test_transcript_parse_command(tmp_path: Path) -> None:
+    src = tmp_path / "whisper.json"
+    src.write_text(
+        json.dumps({"segments": [{"id": 0, "start": 0.0, "end": 1.0, "text": "hello"}]}),
+        encoding="utf-8",
+    )
+    out = tmp_path / "segments.jsonl"
+    result = runner.invoke(app, ["transcript-parse", "--input", str(src), "--out", str(out)])
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "parsed_segments=1" in result.stdout
