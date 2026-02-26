@@ -3,6 +3,11 @@ from pathlib import Path
 import typer
 
 from course_step_extractor.clips import extract_clips, read_frames_jsonl, write_clips_jsonl
+from course_step_extractor.extractor import (
+    extract_steps,
+    read_clips_manifest_jsonl,
+    write_steps_jsonl,
+)
 from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
 from course_step_extractor.models import Step
 from course_step_extractor.providers import ping_provider
@@ -72,6 +77,19 @@ def clips_extract(
     rows = extract_clips(video, candidates, out_dir=out_dir, reencode=reencode)
     write_clips_jsonl(rows, manifest_out)
     typer.echo(f"clips={len(rows)} out_dir={out_dir} manifest={manifest_out}")
+
+
+@app.command("steps-extract")
+def steps_extract(
+    segments: Path = typer.Option(..., help="Path to transcript segments JSONL"),
+    clips_manifest: Path = typer.Option(..., help="Path to clips manifest JSONL"),
+    out: Path = typer.Option(..., help="Output TutorialStep JSONL"),
+) -> None:
+    parsed_segments = read_segments_jsonl(segments)
+    clips_by_segment = read_clips_manifest_jsonl(clips_manifest)
+    steps = extract_steps(parsed_segments, clips_by_segment)
+    write_steps_jsonl(steps, out)
+    typer.echo(f"steps={len(steps)} out={out}")
 
 
 @app.command("providers-ping")

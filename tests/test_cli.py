@@ -105,6 +105,48 @@ def test_frames_plan_command(tmp_path: Path) -> None:
     assert "frame_candidates=3" in result.stdout
 
 
+def test_steps_extract_command(monkeypatch, tmp_path: Path) -> None:
+    segments = tmp_path / "segments.jsonl"
+    segments.write_text(
+        '{"segment_id":"1","start_s":0.0,"end_s":1.0,"text":"now click"}\n',
+        encoding="utf-8",
+    )
+    clips = tmp_path / "clips.jsonl"
+    clips.write_text('{"segment_id":"1","clip_path":"clips/step_1.mp4"}\n', encoding="utf-8")
+    out = tmp_path / "steps.jsonl"
+
+    def _fake_extract_steps(parsed_segments, clips_by_segment):
+        _ = parsed_segments, clips_by_segment
+        from course_step_extractor.models import TutorialStep
+
+        return [
+            TutorialStep(
+                step_id="step_1",
+                instruction_text="Click the button",
+                intent="Demonstrate selection",
+                expected_outcome="Selection changes",
+                confidence=0.8,
+            )
+        ]
+
+    monkeypatch.setattr(cli, "extract_steps", _fake_extract_steps)
+    result = runner.invoke(
+        app,
+        [
+            "steps-extract",
+            "--segments",
+            str(segments),
+            "--clips-manifest",
+            str(clips),
+            "--out",
+            str(out),
+        ],
+    )
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "steps=1" in result.stdout
+
+
 def test_clips_extract_command(monkeypatch, tmp_path: Path) -> None:
     frames = tmp_path / "frames.jsonl"
     frames.write_text(
