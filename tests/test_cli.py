@@ -87,3 +87,19 @@ def test_transcript_parse_command(tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert out.exists()
     assert "parsed_segments=1" in result.stdout
+
+
+def test_frames_plan_command(tmp_path: Path) -> None:
+    segments = tmp_path / "segments.jsonl"
+    segments.write_text(
+        '{"segment_id":"1","start_s":0.0,"end_s":1.0,"text":"now click"}\n',
+        encoding="utf-8",
+    )
+    out = tmp_path / "frames.jsonl"
+    result = runner.invoke(
+        app,
+        ["frames-plan", "--segments", str(segments), "--out", str(out), "--clip-pad-s", "0.5"],
+    )
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "frame_candidates=3" in result.stdout

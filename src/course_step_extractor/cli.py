@@ -2,6 +2,7 @@ from pathlib import Path
 
 import typer
 
+from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
 from course_step_extractor.models import Step
 from course_step_extractor.providers import ping_provider
 from course_step_extractor.settings import AppConfig, validate_config
@@ -44,6 +45,18 @@ def transcript_parse(
     segments = parse_whisper_json(input)
     write_segments_jsonl(segments, out)
     typer.echo(f"parsed_segments={len(segments)} out={out}")
+
+
+@app.command("frames-plan")
+def frames_plan(
+    segments: Path = typer.Option(..., help="Path to segments JSONL"),
+    out: Path = typer.Option(..., help="Path to output frame candidates JSONL"),
+    clip_pad_s: float = typer.Option(1.0, help="Seconds padding around each segment"),
+) -> None:
+    parsed = read_segments_jsonl(segments)
+    candidates = plan_frames(parsed, clip_pad_s=clip_pad_s)
+    write_frames_jsonl(candidates, out)
+    typer.echo(f"frame_candidates={len(candidates)} out={out}")
 
 
 @app.command("providers-ping")
