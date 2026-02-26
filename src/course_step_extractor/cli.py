@@ -1,6 +1,10 @@
+from pathlib import Path
+
 import typer
 
 from course_step_extractor.models import Step
+from course_step_extractor.providers import ping_provider
+from course_step_extractor.settings import AppConfig, validate_config
 
 app = typer.Typer(help="Course step extraction CLI", no_args_is_help=True)
 
@@ -15,3 +19,39 @@ def sample() -> None:
     """Emit a sample markdown step."""
     step = Step(title="Open video", description="Load the video file and transcript.")
     typer.echo(f"## {step.title}\n\n- {step.description}")
+
+
+@app.command("config-validate")
+def config_validate(config: Path = typer.Option(Path("config.json"))) -> None:
+    ok, message = validate_config(config)
+    if not ok:
+        typer.echo(message)
+        raise typer.Exit(1)
+
+    payload = AppConfig.load(config)
+    typer.echo(
+        f"OK: transcription={payload.transcription.provider}, "
+        f"reasoning={payload.reasoning.provider}, vlm={payload.vlm.provider}"
+    )
+
+
+@app.command("providers-ping")
+def providers_ping(
+    config: Path = typer.Option(Path("config.json")),
+    path: str = typer.Option("/"),
+) -> None:
+    cfg = AppConfig.load(config)
+    providers = {
+        "transcription": cfg.transcription,
+        "reasoning": cfg.reasoning,
+        "vlm": cfg.vlm,
+    }
+    all_ok = True
+    for name, provider in providers.items():
+        result = ping_provider(provider, path=path)
+        status = "ok" if result["ok"] else "fail"
+        typer.echo(f"{name}: {status} ({result['status_code']}) {result['url']}")
+        all_ok = all_ok and bool(result["ok"])
+
+    if not all_ok:
+        raise typer.Exit(1)
