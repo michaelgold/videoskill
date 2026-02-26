@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling>=1.25.0"]
+build-backend = "hatchling.build"
+
 [project]
 name = "course-step-extractor"
 version = "0.1.0"
@@ -19,6 +23,9 @@ dev = [
 
 [project.scripts]
 course-steps = "course_step_extractor.cli:app"
+
+[tool.uv]
+package = true
 
 [tool.pytest.ini_options]
 addopts = "-q --cov=course_step_extractor --cov-report=term-missing --cov-fail-under=90"
