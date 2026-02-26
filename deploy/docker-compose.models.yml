@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  reasoning:
+    image: vllm/vllm-openai:latest
+    container_name: reasoning-qwen35
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    ports:
+      - "8001:8000"
+    volumes:
+      - ../models/reasoning/Qwen3.5-35B-A3B:/model
+    command: >
+      --model /model
+      --served-model-name qwen35-a3b
+      --host 0.0.0.0
+      --port 8000
+      --gpu-memory-utilization 0.92
+      --max-model-len 32768
+      --trust-remote-code
+
+  vlm:
+    image: vllm/vllm-openai:latest
+    container_name: vlm-gemma3
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    ports:
+      - "8002:8000"
+    volumes:
+      - ../models/vlm/gemma-3-27b-it:/model
+    command: >
+      --model /model
+      --served-model-name gemma3-vlm
+      --host 0.0.0.0
+      --port 8000
+      --gpu-memory-utilization 0.92
+      --max-model-len 16384
+      --trust-remote-code
+
+  transcription:
+    image: fedirz/faster-whisper-server:latest
+    container_name: whisper-asr
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - ASR_MODEL_PATH=/models
+      - ASR_MODEL_NAME=faster-whisper-large-v3
+    ports:
+      - "8003:8000"
+    volumes:
+      - ../models/whisper/faster-whisper-large-v3:/models
