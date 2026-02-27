@@ -9,6 +9,7 @@ from course_step_extractor.extractor import (
     read_clips_manifest_jsonl,
     write_steps_jsonl,
 )
+from course_step_extractor.enrich import enrich_steps, read_steps_jsonl, write_enriched_steps_jsonl
 from course_step_extractor.extractor_ai import extract_steps_from_chunks_ai
 from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
 from course_step_extractor.models import Step
@@ -133,6 +134,23 @@ def steps_extract(
 
     write_steps_jsonl(steps, out)
     typer.echo(f"steps={len(steps)} out={out} mode={mode}")
+
+
+@app.command("steps-enrich")
+def steps_enrich(
+    steps: Path = typer.Option(..., help="Path to TutorialStep JSONL"),
+    out: Path = typer.Option(..., help="Output enriched steps JSONL"),
+    mode: str = typer.Option("heuristic", help="heuristic|ai"),
+    config: Path = typer.Option(Path("config.json"), help="Provider config path for ai mode"),
+) -> None:
+    parsed_steps = read_steps_jsonl(steps)
+    if mode == "ai":
+        cfg = AppConfig.load(config)
+        rows = enrich_steps(parsed_steps, reasoning=cfg.reasoning, vlm=cfg.vlm)
+    else:
+        rows = enrich_steps(parsed_steps, reasoning=None, vlm=None)
+    write_enriched_steps_jsonl(rows, out)
+    typer.echo(f"enriched_steps={len(rows)} out={out} mode={mode}")
 
 
 @app.command("providers-ping")

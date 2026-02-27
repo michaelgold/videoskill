@@ -226,6 +226,21 @@ def test_steps_extract_command_ai_mode(monkeypatch, tmp_path: Path) -> None:
     assert "mode=ai" in result.stdout
 
 
+def test_steps_enrich_command_heuristic(tmp_path: Path) -> None:
+    steps = tmp_path / "steps.jsonl"
+    steps.write_text(
+        '{"step_id":"step_1","source_segment_id":"1","start_s":0.0,"end_s":1.0,'
+        '"clip_start_s":0.0,"clip_end_s":1.2,"instruction_text":"rotate hand",'
+        '"intent":"transform_object","expected_outcome":"aligned","confidence":0.8}\n',
+        encoding="utf-8",
+    )
+    out = tmp_path / "steps.enriched.jsonl"
+    result = runner.invoke(app, ["steps-enrich", "--steps", str(steps), "--out", str(out)])
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "enriched_steps=1" in result.stdout
+
+
 def test_steps_extract_command(monkeypatch, tmp_path: Path) -> None:
     segments = tmp_path / "segments.jsonl"
     segments.write_text(
