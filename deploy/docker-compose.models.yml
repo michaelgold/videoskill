@@ -1,41 +1,75 @@
 services:
   reasoning:
-    image: vllm/vllm-openai:latest
-    container_name: reasoning-qwen35
-    runtime: nvidia
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: qwen35-a3b-gguf
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-    ports:
-      - "8001:8000"
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
     volumes:
-      - ../models/reasoning/Qwen3.5-35B-A3B:/model
+      - ../models:/models
+
+    ports:
+      - "8081:8080"
+
     command: >
-      --model /model
-      --served-model-name qwen35-a3b
+      -m /models/reasoning/Qwen3.5-35B-A3B/Qwen3.5-35B-A3B-Q4_K_M.gguf
       --host 0.0.0.0
-      --port 8000
-      --gpu-memory-utilization 0.92
-      --max-model-len 32768
-      --trust-remote-code
+      --port 8080
+      --ctx-size 16384 
+      --temp 1.0 
+      --top-p 0.95 
+      --top-k 20 
+      --min-p 0.00
 
   vlm:
-    image: vllm/vllm-openai:latest
-    container_name: vlm-gemma3
-    runtime: nvidia
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda
+    container_name: gemma3-27b-it-gguf
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-    ports:
-      - "8002:8000"
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
     volumes:
-      - ../models/vlm/gemma-3-27b-it:/model
+      - ../models:/models
+
+    ports:
+      - "8082:8080"
+
     command: >
-      --model /model
-      --served-model-name gemma3-vlm
+      -m /models/vlm/gemma-3-27b-it/gemma-3-27b-it-Q4_K_M.gguf
+      --mmproj /models/vlm/gemma-3-27b-it/mmproj-f16.gguf
       --host 0.0.0.0
-      --port 8000
-      --gpu-memory-utilization 0.92
-      --max-model-len 16384
-      --trust-remote-code
+      --port 8080
+      --ctx-size 8192 
+      --n-gpu-layers 99 
+      --seed 3407 
+      --prio 2 
+      --temp 1.0 
+      --repeat-penalty 1.0 
+      --min-p 0.01 
+      --top-k 64 
+      --top-p 0.95 
+    
 
   transcription:
     image: ghcr.io/speaches-ai/speaches:latest-cuda
