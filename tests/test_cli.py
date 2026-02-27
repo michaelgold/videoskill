@@ -299,8 +299,14 @@ def test_steps_enrich_command_ai_with_errors(monkeypatch, tmp_path: Path) -> Non
     out = tmp_path / "steps.enriched.ai.jsonl"
     cfg_path = _config_file(tmp_path)
 
-    def _fake_enrich(steps, reasoning=None, vlm=None, error_rows=None):
-        _ = steps, reasoning, vlm
+    def _fake_enrich(
+        steps,
+        reasoning=None,
+        vlm=None,
+        error_rows=None,
+        orchestrate_with_reasoning=True,
+    ):
+        _ = steps, reasoning, vlm, orchestrate_with_reasoning
         if error_rows is not None:
             error_rows.append({"kind": "fake_error", "step_id": "step_1"})
         return [
@@ -337,6 +343,46 @@ def test_steps_enrich_command_ai_with_errors(monkeypatch, tmp_path: Path) -> Non
     assert result.exit_code == 0
     assert "parse_errors=1" in result.stdout
     assert Path(str(out) + ".errors.jsonl").exists()
+
+
+def test_steps_enrich_command_ai_direct(monkeypatch, tmp_path: Path) -> None:
+    steps = tmp_path / "steps.jsonl"
+    steps.write_text(
+        '{"step_id":"step_1","source_segment_id":"1","start_s":0.0,"end_s":1.0,'
+        '"clip_start_s":0.0,"clip_end_s":1.2,"instruction_text":"rotate hand",'
+        '"intent":"transform_object","expected_outcome":"aligned","confidence":0.8}\n',
+        encoding="utf-8",
+    )
+    out = tmp_path / "steps.enriched.ai-direct.jsonl"
+    cfg_path = _config_file(tmp_path)
+
+    def _fake_enrich(
+        steps,
+        reasoning=None,
+        vlm=None,
+        error_rows=None,
+        orchestrate_with_reasoning=True,
+    ):
+        _ = steps, reasoning, vlm, error_rows
+        assert orchestrate_with_reasoning is False
+        return []
+
+    monkeypatch.setattr(cli, "enrich_steps", _fake_enrich)
+    result = runner.invoke(
+        app,
+        [
+            "steps-enrich",
+            "--steps",
+            str(steps),
+            "--out",
+            str(out),
+            "--mode",
+            "ai-direct",
+            "--config",
+            str(cfg_path),
+        ],
+    )
+    assert result.exit_code == 0
 
 
 def test_steps_enrich_command_heuristic(tmp_path: Path) -> None:

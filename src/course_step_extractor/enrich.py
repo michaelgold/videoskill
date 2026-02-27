@@ -29,6 +29,13 @@ class VlmJudgeModel(BaseModel):
     confidence: float = Field(ge=0, le=1)
 
 
+class FinalJudgeModel(BaseModel):
+    motion_detected: bool
+    alignment_ok: bool | None = None
+    summary: str = Field(min_length=1)
+    confidence: float = Field(ge=0, le=1)
+
+
 def read_steps_jsonl(path: Path) -> list[TutorialStep]:
     steps: list[TutorialStep] = []
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -155,11 +162,48 @@ def vlm_motion_judge_with_model(
         }
 
 
+def reasoning_finalize_judgement(
+    provider: ProviderConfig,
+    step: TutorialStep,
+    timestamps: list[float],
+    raw_judge: dict[str, object],
+    error_rows: list[dict[str, object]] | None = None,
+) -> dict[str, object]:
+    system = (
+        "You are a quality gate for tutorial-step verification. "
+        "Given step context, timestamps, and raw VLM judgement, return a normalized final judgement."
+    )
+    user = json.dumps(
+        {
+            "step_id": step.step_id,
+            "instruction_text": step.instruction_text,
+            "intent": step.intent,
+            "expected_outcome": step.expected_outcome,
+            "timestamps": timestamps,
+            "raw_vlm_judgement": raw_judge,
+        }
+    )
+    try:
+        parsed = run_structured(
+            provider,
+            system,
+            user,
+            FinalJudgeModel,
+            max_retries=2,
+            error_rows=error_rows,
+            error_context={"step_id": step.step_id, "stage": "reasoning_finalize"},
+        )
+        return parsed.model_dump()
+    except Exception:
+        return raw_judge
+
+
 def enrich_steps(
     steps: list[TutorialStep],
     reasoning: ProviderConfig | None = None,
     vlm: ProviderConfig | None = None,
     error_rows: list[dict[str, object]] | None = None,
+    orchestrate_with_reasoning: bool = True,
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for step in steps:

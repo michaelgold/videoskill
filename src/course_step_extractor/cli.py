@@ -147,7 +147,7 @@ def steps_extract(
 def steps_enrich(
     steps: Path = typer.Option(..., help="Path to TutorialStep JSONL"),
     out: Path = typer.Option(..., help="Output enriched steps JSONL"),
-    mode: str = typer.Option("heuristic", help="heuristic|ai"),
+    mode: str = typer.Option("heuristic", help="heuristic|ai|ai-direct"),
     config: Path = typer.Option(Path("config.json"), help="Provider config path for ai mode"),
 ) -> None:
     parsed_steps = read_steps_jsonl(steps)
@@ -159,6 +159,16 @@ def steps_enrich(
             reasoning=cfg.reasoning,
             vlm=cfg.vlm,
             error_rows=error_rows,
+            orchestrate_with_reasoning=True,
+        )
+    elif mode == "ai-direct":
+        cfg = AppConfig.load(config)
+        rows = enrich_steps(
+            parsed_steps,
+            reasoning=None,
+            vlm=cfg.vlm,
+            error_rows=error_rows,
+            orchestrate_with_reasoning=False,
         )
     else:
         rows = enrich_steps(parsed_steps, reasoning=None, vlm=None, error_rows=error_rows)
