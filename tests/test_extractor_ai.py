@@ -1,48 +1,28 @@
 from course_step_extractor.chunking import TranscriptChunk
-from course_step_extractor.extractor_ai import extract_steps_from_chunks_ai
+from course_step_extractor.extractor_ai import (
+    ChunkStep,
+    ChunkStepResponse,
+    extract_steps_from_chunks_ai,
+)
 from course_step_extractor.settings import ProviderConfig
 
 
-class _Resp:
-    def __init__(self, payload):
-        self._payload = payload
-
-    def raise_for_status(self):
-        return None
-
-    def json(self):
-        return self._payload
-
-
-class _Client:
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, tb):
-        return False
-
-    def post(self, *args, **kwargs):
-        _ = args, kwargs
-        content = {
-            "steps": [
-                {
-                    "instruction_text": "Add a cube",
-                    "intent": "Create base mesh",
-                    "expected_outcome": "Cube appears",
-                    "start_s": 1.0,
-                    "end_s": 4.0,
-                    "confidence": 0.9,
-                }
-            ]
-        }
-        return _Resp({"choices": [{"message": {"content": __import__("json").dumps(content)}}]})
-
-
 def test_extract_steps_from_chunks_ai(monkeypatch) -> None:
-    monkeypatch.setattr(
-        "course_step_extractor.extractor_ai.httpx.Client",
-        lambda *a, **k: _Client(),
-    )
+    def _fake_run_structured(_provider, _system, _user, _result_type):
+        return ChunkStepResponse(
+            steps=[
+                ChunkStep(
+                    instruction_text="Add a cube",
+                    intent="Create base mesh",
+                    expected_outcome="Cube appears",
+                    start_s=1.0,
+                    end_s=4.0,
+                    confidence=0.9,
+                )
+            ]
+        )
+
+    monkeypatch.setattr("course_step_extractor.extractor_ai.run_structured", _fake_run_structured)
 
     cfg = ProviderConfig(
         provider="openai-compatible",

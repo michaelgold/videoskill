@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import json
-from typing import Any
 
-import httpx
 from pydantic import BaseModel, Field
 
+from course_step_extractor.ai_adapter import run_structured
 from course_step_extractor.chunking import TranscriptChunk
 from course_step_extractor.models import TutorialStep
 from course_step_extractor.settings import ProviderConfig
@@ -24,26 +23,11 @@ class ChunkStepResponse(BaseModel):
     steps: list[ChunkStep] = Field(default_factory=list)
 
 
-def _parse_json_object(text: str) -> dict[str, Any]:
-    text = text.strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        if text.lower().startswith("json"):
-            text = text[4:].strip()
-    return json.loads(text)
-
-
 def _call_reasoning_chunk(provider: ProviderConfig, chunk: TranscriptChunk) -> ChunkStepResponse:
-    endpoint = str(provider.base_url).rstrip("/") + "/v1/chat/completions"
-    headers: dict[str, str] = {"Content-Type": "application/json"}
-    key = provider.api_key()
-    if key:
-        headers["Authorization"] = f"Bearer {key}"
-
     system = (
         "You extract concise tutorial steps from transcript chunks. "
-        "Return ONLY JSON with schema: "
-        "{\"steps\":[{instruction_text,intent,expected_outcome,start_s,end_s,confidence}]}."
+        "Return structured output with fields: instruction_text, intent, expected_outcome, "
+        "start_s, end_s, confidence."
     )
     user = {
         "chunk_id": chunk.chunk_id,
@@ -52,25 +36,7 @@ def _call_reasoning_chunk(provider: ProviderConfig, chunk: TranscriptChunk) -> C
         "segment_ids": chunk.segment_ids,
         "text": chunk.text,
     }
-
-    payload = {
-        "model": provider.model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": json.dumps(user)},
-        ],
-        "temperature": 0.1,
-        "response_format": {"type": "json_object"},
-    }
-
-    with httpx.Client(timeout=provider.timeout_s) as client:
-        res = client.post(endpoint, headers=headers, json=payload)
-        res.raise_for_status()
-        body = res.json()
-
-    content = body["choices"][0]["message"]["content"]
-    parsed = _parse_json_object(content)
-    return ChunkStepResponse.model_validate(parsed)
+    return run_structured(provider, system, json.dumps(user), ChunkStepResponse)
 
 
 def extract_steps_from_chunks_ai(

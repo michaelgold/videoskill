@@ -4,8 +4,9 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-import httpx
+from pydantic import BaseModel, Field
 
+from course_step_extractor.ai_adapter import run_structured
 from course_step_extractor.models import TutorialStep
 from course_step_extractor.settings import ProviderConfig
 
@@ -14,6 +15,18 @@ from course_step_extractor.settings import ProviderConfig
 class EnrichmentPlan:
     sample_count: int
     rationale: str
+
+
+class SamplingPlanModel(BaseModel):
+    sample_count: int = Field(ge=2, le=10)
+    rationale: str = Field(min_length=1)
+
+
+class VlmJudgeModel(BaseModel):
+    motion_detected: bool
+    alignment_ok: bool | None = None
+    summary: str = Field(min_length=1)
+    confidence: float = Field(ge=0, le=1)
 
 
 def read_steps_jsonl(path: Path) -> list[TutorialStep]:
@@ -67,30 +80,6 @@ def sample_timestamps(step: TutorialStep, count: int) -> list[float]:
     return [round(start + span * (i / (count - 1)), 3) for i in range(count)]
 
 
-def _openai_chat(provider: ProviderConfig, system: str, user: str) -> str:
-    endpoint = str(provider.base_url).rstrip("/") + "/v1/chat/completions"
-    headers = {"Content-Type": "application/json"}
-    key = provider.api_key()
-    if key:
-        headers["Authorization"] = f"Bearer {key}"
-
-    payload = {
-        "model": provider.model,
-        "messages": [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        "temperature": 0.1,
-        "response_format": {"type": "json_object"},
-    }
-
-    with httpx.Client(timeout=provider.timeout_s) as client:
-        res = client.post(endpoint, headers=headers, json=payload)
-        res.raise_for_status()
-        body = res.json()
-    return body["choices"][0]["message"]["content"]
-
-
 def reasoning_plan_with_model(provider: ProviderConfig, step: TutorialStep) -> EnrichmentPlan:
     system = (
         "You plan frame sampling for video-step visual verification. "
@@ -108,13 +97,9 @@ def reasoning_plan_with_model(provider: ProviderConfig, step: TutorialStep) -> E
         }
     )
     try:
-        content = _openai_chat(provider, system, user)
-        parsed = json.loads(content)
-        n = int(parsed.get("sample_count", 3))
-        return EnrichmentPlan(
-            sample_count=max(2, min(10, n)),
-            rationale=str(parsed.get("rationale", "model")),
-        )
+        parsed = run_structured(provider, system, user, SamplingPlanModel)
+        n = int(parsed.sample_count)
+        return EnrichmentPlan(sample_count=max(2, min(10, n)), rationale=parsed.rationale)
     except Exception:
         return plan_sampling_for_step(step)
 
@@ -138,14 +123,8 @@ def vlm_motion_judge_with_model(
         }
     )
     try:
-        content = _openai_chat(provider, system, user)
-        parsed = json.loads(content)
-        return {
-            "motion_detected": bool(parsed.get("motion_detected", False)),
-            "alignment_ok": parsed.get("alignment_ok", None),
-            "summary": str(parsed.get("summary", "")),
-            "confidence": float(parsed.get("confidence", 0.5)),
-        }
+        parsed = run_structured(provider, system, user, VlmJudgeModel)
+        return parsed.model_dump()
     except Exception:
         return {
             "motion_detected": False,
