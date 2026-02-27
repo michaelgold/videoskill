@@ -76,6 +76,36 @@ def test_providers_ping_command_fails(monkeypatch, tmp_path: Path) -> None:
     assert result.exit_code == 1
 
 
+def test_transcribe_command(monkeypatch, tmp_path: Path) -> None:
+    cfg_path = _config_file(tmp_path)
+    video = tmp_path / "demo.mp4"
+    video.write_bytes(b"vid")
+    out = tmp_path / "whisper.json"
+
+    def _fake_transcribe(provider, video_path, out_path):
+        _ = provider, video_path
+        payload = {"segments": [{"id": 0, "start": 0.0, "end": 1.0, "text": "hello"}]}
+        out_path.write_text(json.dumps(payload), encoding="utf-8")
+        return payload
+
+    monkeypatch.setattr(cli, "transcribe_video_whisper_openai", _fake_transcribe)
+    result = runner.invoke(
+        app,
+        [
+            "transcribe",
+            "--video",
+            str(video),
+            "--out",
+            str(out),
+            "--config",
+            str(cfg_path),
+        ],
+    )
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "transcribed_segments=1" in result.stdout
+
+
 def test_transcript_parse_command(tmp_path: Path) -> None:
     src = tmp_path / "whisper.json"
     src.write_text(

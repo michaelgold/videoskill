@@ -13,6 +13,7 @@ from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, w
 from course_step_extractor.models import Step
 from course_step_extractor.providers import ping_provider
 from course_step_extractor.settings import AppConfig, validate_config
+from course_step_extractor.transcribe import transcribe_video_whisper_openai
 from course_step_extractor.transcript import parse_whisper_json, write_segments_jsonl
 
 app = typer.Typer(help="Course step extraction CLI", no_args_is_help=True)
@@ -42,6 +43,18 @@ def config_validate(config: Path = typer.Option(Path("config.json"))) -> None:
         f"OK: transcription={payload.transcription.provider}, "
         f"reasoning={payload.reasoning.provider}, vlm={payload.vlm.provider}"
     )
+
+
+@app.command("transcribe")
+def transcribe(
+    video: Path = typer.Option(..., help="Path to source video file"),
+    out: Path = typer.Option(..., help="Output Whisper JSON path"),
+    config: Path = typer.Option(Path("config.json"), help="Provider config path"),
+) -> None:
+    cfg = AppConfig.load(config)
+    payload = transcribe_video_whisper_openai(cfg.transcription, video, out)
+    seg_count = len(payload.get("segments", [])) if isinstance(payload, dict) else 0
+    typer.echo(f"transcribed_segments={seg_count} out={out}")
 
 
 @app.command("transcript-parse")
