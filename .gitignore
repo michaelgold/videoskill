@@ -6,3 +6,5 @@ htmlcov/
 __pycache__/
 *.pyc
 models/
+config.json
+datasets/

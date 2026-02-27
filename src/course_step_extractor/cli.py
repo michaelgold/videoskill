@@ -2,13 +2,14 @@ from pathlib import Path
 
 import typer
 
-from course_step_extractor.chunking import chunk_segments, write_chunks_jsonl
+from course_step_extractor.chunking import chunk_segments, read_chunks_jsonl, write_chunks_jsonl
 from course_step_extractor.clips import extract_clips, read_frames_jsonl, write_clips_jsonl
 from course_step_extractor.extractor import (
     extract_steps,
     read_clips_manifest_jsonl,
     write_steps_jsonl,
 )
+from course_step_extractor.extractor_ai import extract_steps_from_chunks_ai
 from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
 from course_step_extractor.models import Step
 from course_step_extractor.providers import ping_provider
@@ -111,12 +112,27 @@ def steps_extract(
     segments: Path = typer.Option(..., help="Path to transcript segments JSONL"),
     clips_manifest: Path = typer.Option(..., help="Path to clips manifest JSONL"),
     out: Path = typer.Option(..., help="Output TutorialStep JSONL"),
+    mode: str = typer.Option("scaffold", help="scaffold|ai"),
+    chunks: Path | None = typer.Option(
+        None,
+        help="Path to transcript chunks JSONL (required for ai mode)",
+    ),
+    config: Path = typer.Option(Path("config.json"), help="Provider config path for ai mode"),
 ) -> None:
-    parsed_segments = read_segments_jsonl(segments)
     clips_by_segment = read_clips_manifest_jsonl(clips_manifest)
-    steps = extract_steps(parsed_segments, clips_by_segment)
+
+    if mode == "ai":
+        if chunks is None:
+            raise typer.BadParameter("--chunks is required when --mode ai")
+        cfg = AppConfig.load(config)
+        parsed_chunks = read_chunks_jsonl(chunks)
+        steps = extract_steps_from_chunks_ai(cfg.reasoning, parsed_chunks)
+    else:
+        parsed_segments = read_segments_jsonl(segments)
+        steps = extract_steps(parsed_segments, clips_by_segment)
+
     write_steps_jsonl(steps, out)
-    typer.echo(f"steps={len(steps)} out={out}")
+    typer.echo(f"steps={len(steps)} out={out} mode={mode}")
 
 
 @app.command("providers-ping")
