@@ -460,6 +460,55 @@ def test_markdown_render_command(tmp_path: Path) -> None:
     assert "markdown_steps=1" in result.stdout
 
 
+def test_frames_extract_command(monkeypatch, tmp_path: Path) -> None:
+    steps = tmp_path / "steps.jsonl"
+    steps.write_text(
+        '{"step_id":"step_1","source_segment_id":"1","start_s":0.0,"end_s":1.0,'
+        '"clip_start_s":0.0,"clip_end_s":1.2,"instruction_text":"rotate hand",'
+        '"intent":"transform_object","expected_outcome":"aligned","confidence":0.8}\n',
+        encoding="utf-8",
+    )
+    out_dir = tmp_path / "frames"
+    manifest = tmp_path / "frames_manifest.jsonl"
+
+    def _fake_extract(_video, _steps, out_dir, sample_count=3):
+        out_dir.mkdir(parents=True, exist_ok=True)
+        p = out_dir / "step_1.jpg"
+        p.write_bytes(b"fake")
+        return [
+            {
+                "step_id": "step_1",
+                "source_segment_id": "1",
+                "frame_paths": [str(p)],
+                "frame_timestamps": [0.0],
+            }
+        ]
+
+    monkeypatch.setattr(cli, "extract_frames_for_steps", _fake_extract)
+
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"vid")
+    result = runner.invoke(
+        app,
+        [
+            "frames-extract",
+            "--video",
+            str(video),
+            "--steps",
+            str(steps),
+            "--out-dir",
+            str(out_dir),
+            "--manifest-out",
+            str(manifest),
+            "--sample-count",
+            "2",
+        ],
+    )
+    assert result.exit_code == 0
+    assert manifest.exists()
+    assert "frame_sets=1" in result.stdout
+
+
 def test_clips_extract_command(monkeypatch, tmp_path: Path) -> None:
     frames = tmp_path / "frames.jsonl"
     frames.write_text(

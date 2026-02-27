@@ -13,6 +13,11 @@ from course_step_extractor.extractor import (
 )
 from course_step_extractor.extractor_ai import extract_steps_from_chunks_ai
 from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
+from course_step_extractor.frames import (
+    extract_frames_for_steps,
+    read_steps_jsonl as read_steps_for_frames,
+    write_frames_manifest_jsonl,
+)
 from course_step_extractor.models import Step
 from course_step_extractor.providers import ping_provider
 from course_step_extractor.render import read_jsonl, render_markdown, write_markdown
@@ -94,6 +99,20 @@ def transcript_chunk(
     chunks = chunk_segments(parsed, window_s=window_s, overlap_s=overlap_s)
     write_chunks_jsonl(chunks, out)
     typer.echo(f"chunks={len(chunks)} out={out}")
+
+
+@app.command("frames-extract")
+def frames_extract(
+    video: Path = typer.Option(..., help="Path to source video"),
+    steps: Path = typer.Option(..., help="Path to steps JSONL"),
+    out_dir: Path = typer.Option(..., help="Output directory for extracted frames"),
+    manifest_out: Path = typer.Option(..., help="Output frames manifest JSONL"),
+    sample_count: int = typer.Option(3, help="Frames sampled per step"),
+) -> None:
+    parsed_steps = read_steps_for_frames(steps)
+    rows = extract_frames_for_steps(video, parsed_steps, out_dir=out_dir, sample_count=sample_count)
+    write_frames_manifest_jsonl(rows, manifest_out)
+    typer.echo(f"frame_sets={len(rows)} out_dir={out_dir} manifest={manifest_out}")
 
 
 @app.command("clips-extract")
