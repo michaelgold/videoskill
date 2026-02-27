@@ -14,6 +14,7 @@ from course_step_extractor.extractor_ai import extract_steps_from_chunks_ai
 from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
 from course_step_extractor.models import Step
 from course_step_extractor.providers import ping_provider
+from course_step_extractor.render import read_jsonl, render_markdown, write_markdown
 from course_step_extractor.settings import AppConfig, validate_config
 from course_step_extractor.transcribe import transcribe_video_whisper_openai
 from course_step_extractor.transcript import parse_whisper_json, write_segments_jsonl
@@ -151,6 +152,18 @@ def steps_enrich(
         rows = enrich_steps(parsed_steps, reasoning=None, vlm=None)
     write_enriched_steps_jsonl(rows, out)
     typer.echo(f"enriched_steps={len(rows)} out={out} mode={mode}")
+
+
+@app.command("markdown-render")
+def markdown_render(
+    steps: Path = typer.Option(..., help="Input steps/enriched steps JSONL"),
+    out: Path = typer.Option(..., help="Output markdown path"),
+    title: str = typer.Option("Lesson Steps"),
+) -> None:
+    rows = read_jsonl(steps)
+    md = render_markdown(rows, title=title)
+    write_markdown(md, out)
+    typer.echo(f"markdown_steps={len(rows)} out={out}")
 
 
 @app.command("providers-ping")

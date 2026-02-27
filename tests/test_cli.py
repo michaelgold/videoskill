@@ -288,6 +288,19 @@ def test_steps_extract_command(monkeypatch, tmp_path: Path) -> None:
     assert "steps=1" in result.stdout
 
 
+def test_markdown_render_command(tmp_path: Path) -> None:
+    steps = tmp_path / "steps.jsonl"
+    steps.write_text(
+        '{"step_id":"step_1","instruction_text":"Add cube","intent":"Create","expected_outcome":"Cube","start_s":0.0,"end_s":1.0,"clip_start_s":0.0,"clip_end_s":1.2,"confidence":0.8}\n',
+        encoding="utf-8",
+    )
+    out = tmp_path / "lesson.md"
+    result = runner.invoke(app, ["markdown-render", "--steps", str(steps), "--out", str(out), "--title", "Lesson 1"])
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "markdown_steps=1" in result.stdout
+
+
 def test_clips_extract_command(monkeypatch, tmp_path: Path) -> None:
     frames = tmp_path / "frames.jsonl"
     frames.write_text(
