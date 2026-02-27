@@ -20,7 +20,7 @@ services:
       - ../models:/models
 
     ports:
-      - "8081:8080"
+      - "8080:8080"
 
     command: >
       -m /models/reasoning/Qwen3.5-35B-A3B/Qwen3.5-35B-A3B-Q4_K_M.gguf
@@ -53,7 +53,7 @@ services:
       - ../models:/models
 
     ports:
-      - "8082:8080"
+      - "8081:8080"
 
     command: >
       -m /models/vlm/gemma-3-27b-it/gemma-3-27b-it-Q4_K_M.gguf
@@ -74,12 +74,20 @@ services:
   transcription:
     image: ghcr.io/speaches-ai/speaches:latest-cuda
     container_name: whisper-asr
-    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-      - ASR_MODEL_PATH=/models
-      - ASR_MODEL_NAME=faster-whisper-large-v3
+      - CHAT_COMPLETION_BASE_URL=http://reasoning:8080/v1
+      - CHAT_COMPLETION_API_KEY=dummy
+      - PRELOAD_MODELS=Systran/faster-whisper-medium-v3  
     ports:
-      - "8003:8000"
+      - "8000:8000"
     volumes:
-      - ../models/whisper/faster-whisper-large-v3:/models
+      - ../models/whisper:/home/ubuntu/.cache/huggingface/hub
