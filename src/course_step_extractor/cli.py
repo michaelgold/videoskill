@@ -2,6 +2,7 @@ from pathlib import Path
 
 import typer
 
+from course_step_extractor.chunking import chunk_segments, write_chunks_jsonl
 from course_step_extractor.clips import extract_clips, read_frames_jsonl, write_clips_jsonl
 from course_step_extractor.extractor import (
     extract_steps,
@@ -63,6 +64,19 @@ def frames_plan(
     candidates = plan_frames(parsed, clip_pad_s=clip_pad_s)
     write_frames_jsonl(candidates, out)
     typer.echo(f"frame_candidates={len(candidates)} out={out}")
+
+
+@app.command("transcript-chunk")
+def transcript_chunk(
+    segments: Path = typer.Option(..., help="Path to transcript segments JSONL"),
+    out: Path = typer.Option(..., help="Output chunk JSONL"),
+    window_s: float = typer.Option(120.0, help="Chunk window in seconds"),
+    overlap_s: float = typer.Option(15.0, help="Overlap between consecutive chunks"),
+) -> None:
+    parsed = read_segments_jsonl(segments)
+    chunks = chunk_segments(parsed, window_s=window_s, overlap_s=overlap_s)
+    write_chunks_jsonl(chunks, out)
+    typer.echo(f"chunks={len(chunks)} out={out}")
 
 
 @app.command("clips-extract")

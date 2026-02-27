@@ -105,6 +105,39 @@ def test_frames_plan_command(tmp_path: Path) -> None:
     assert "frame_candidates=3" in result.stdout
 
 
+def test_transcript_chunk_command(tmp_path: Path) -> None:
+    segments = tmp_path / "segments.jsonl"
+    segments.write_text(
+        "\n".join(
+            [
+                '{"segment_id":"1","start_s":0.0,"end_s":20.0,"text":"a"}',
+                '{"segment_id":"2","start_s":20.0,"end_s":40.0,"text":"b"}',
+                '{"segment_id":"3","start_s":40.0,"end_s":60.0,"text":"c"}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "chunks.jsonl"
+    result = runner.invoke(
+        app,
+        [
+            "transcript-chunk",
+            "--segments",
+            str(segments),
+            "--out",
+            str(out),
+            "--window-s",
+            "40",
+            "--overlap-s",
+            "10",
+        ],
+    )
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "chunks=" in result.stdout
+
+
 def test_steps_extract_command(monkeypatch, tmp_path: Path) -> None:
     segments = tmp_path / "segments.jsonl"
     segments.write_text(

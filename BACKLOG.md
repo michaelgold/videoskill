@@ -8,14 +8,19 @@ Turn course recordings into **structured markdown lesson steps** (and later Slid
 ### ✅ Done
 - Repo scaffolded with TDD workflow
 - `INSTRUCTIONS.md`, `Makefile`, coverage gate (`>=90%`)
-- Typer CLI scaffold + starter tests
-- Pydantic models scaffold
+- Pydantic models scaffold + validation tests
 - `pydantic-ai` dependency added and verified
+- Provider config + health checks:
+  - `config-validate`
+  - `providers-ping`
+- Transcript/frames/media stages:
+  - `transcript-parse`
+  - `frames-plan`
+  - `clips-extract`
+- `steps-extract` scaffold (deterministic placeholder output)
 
-### ⚠️ Not started
-- Transcript ingestion/parsing
-- Frame timestamp planning
-- PydanticAI extraction pipeline
+### ⚠️ In progress / next
+- PydanticAI-backed chunked extraction (map/reduce)
 - Markdown step renderer
 - Batch processing over class folders
 
@@ -61,6 +66,9 @@ Turn course recordings into **structured markdown lesson steps** (and later Slid
 
 ### P0.5 Extraction
 - [ ] `steps extract` command (PydanticAI-backed)
+- [ ] Add transcript chunking stage (sliding windows + overlap)
+- [ ] Map step extraction per chunk (strict schema, retries)
+- [ ] Reduce pass: merge/dedupe/normalize steps across chunks
 - [ ] Adapter layer around model client
 - [ ] Strict structured output + retry/repair for invalid objects
 - [ ] Require step fields sufficient for agent replication (action + intent + expected outcome)
@@ -126,8 +134,8 @@ Turn course recordings into **structured markdown lesson steps** (and later Slid
 ---
 
 ## Immediate Next 5 Tasks
-1. Implement `TranscriptSegment` and expanded `TutorialStep` models (including intent/outcome/clip fields) with tests.
-2. Add `transcript parse --input whisper.json --out segments.jsonl`.
-3. Add `frames plan --segments segments.jsonl --out frames.jsonl` with clip windows.
-4. Add `clips extract --video input.mp4 --frames frames.jsonl --out clips/`.
-5. Scaffold `steps extract` + `markdown render` with golden snapshot tests including clip references.
+1. Add `transcript-chunk` (time-window + overlap) and tests.
+2. Add PydanticAI `steps-extract` map pass per chunk (mocked tests first).
+3. Add reduce/merge pass for dedupe + ordering across chunk outputs.
+4. Add `markdown-render` with per-step clip references and snapshot tests.
+5. Add `pipeline-run` orchestration command for parse→plan→clips→extract→markdown.
