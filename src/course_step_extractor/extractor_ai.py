@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -23,7 +24,11 @@ class ChunkStepResponse(BaseModel):
     steps: list[ChunkStep] = Field(default_factory=list)
 
 
-def _call_reasoning_chunk(provider: ProviderConfig, chunk: TranscriptChunk) -> ChunkStepResponse:
+def _call_reasoning_chunk(
+    provider: ProviderConfig,
+    chunk: TranscriptChunk,
+    error_rows: list[dict[str, Any]] | None = None,
+) -> ChunkStepResponse:
     system = (
         "You extract concise tutorial steps from transcript chunks. "
         "Return structured output with fields: instruction_text, intent, expected_outcome, "
@@ -36,17 +41,38 @@ def _call_reasoning_chunk(provider: ProviderConfig, chunk: TranscriptChunk) -> C
         "segment_ids": chunk.segment_ids,
         "text": chunk.text,
     }
-    return run_structured(provider, system, json.dumps(user), ChunkStepResponse)
+    return run_structured(
+        provider,
+        system,
+        json.dumps(user),
+        ChunkStepResponse,
+        max_retries=2,
+        error_rows=error_rows,
+        error_context={"chunk_id": chunk.chunk_id, "stage": "chunk_extract"},
+    )
 
 
 def extract_steps_from_chunks_ai(
     provider: ProviderConfig,
     chunks: list[TranscriptChunk],
+    error_rows: list[dict[str, Any]] | None = None,
 ) -> list[TutorialStep]:
     steps: list[TutorialStep] = []
     idx = 1
     for chunk in chunks:
-        response = _call_reasoning_chunk(provider, chunk)
+        try:
+            response = _call_reasoning_chunk(provider, chunk, error_rows=error_rows)
+        except Exception as exc:  # noqa: BLE001
+            if error_rows is not None:
+                error_rows.append(
+                    {
+                        "kind": "chunk_skipped_after_retries",
+                        "chunk_id": chunk.chunk_id,
+                        "error": str(exc),
+                    }
+                )
+            continue
+
         for s in response.steps:
             start_s = max(chunk.start_s, min(s.start_s, chunk.end_s))
             end_s = max(start_s, min(s.end_s, chunk.end_s))

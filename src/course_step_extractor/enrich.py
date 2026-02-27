@@ -80,7 +80,11 @@ def sample_timestamps(step: TutorialStep, count: int) -> list[float]:
     return [round(start + span * (i / (count - 1)), 3) for i in range(count)]
 
 
-def reasoning_plan_with_model(provider: ProviderConfig, step: TutorialStep) -> EnrichmentPlan:
+def reasoning_plan_with_model(
+    provider: ProviderConfig,
+    step: TutorialStep,
+    error_rows: list[dict[str, object]] | None = None,
+) -> EnrichmentPlan:
     system = (
         "You plan frame sampling for video-step visual verification. "
         "Return JSON {sample_count:int, rationale:str}."
@@ -97,7 +101,15 @@ def reasoning_plan_with_model(provider: ProviderConfig, step: TutorialStep) -> E
         }
     )
     try:
-        parsed = run_structured(provider, system, user, SamplingPlanModel)
+        parsed = run_structured(
+            provider,
+            system,
+            user,
+            SamplingPlanModel,
+            max_retries=2,
+            error_rows=error_rows,
+            error_context={"step_id": step.step_id, "stage": "sampling_plan"},
+        )
         n = int(parsed.sample_count)
         return EnrichmentPlan(sample_count=max(2, min(10, n)), rationale=parsed.rationale)
     except Exception:
@@ -108,6 +120,7 @@ def vlm_motion_judge_with_model(
     provider: ProviderConfig,
     step: TutorialStep,
     timestamps: list[float],
+    error_rows: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     system = (
         "You judge whether tutorial step motion/result likely occurred based on provided timestamps context. "
@@ -123,7 +136,15 @@ def vlm_motion_judge_with_model(
         }
     )
     try:
-        parsed = run_structured(provider, system, user, VlmJudgeModel)
+        parsed = run_structured(
+            provider,
+            system,
+            user,
+            VlmJudgeModel,
+            max_retries=2,
+            error_rows=error_rows,
+            error_context={"step_id": step.step_id, "stage": "vlm_judge"},
+        )
         return parsed.model_dump()
     except Exception:
         return {
@@ -138,12 +159,20 @@ def enrich_steps(
     steps: list[TutorialStep],
     reasoning: ProviderConfig | None = None,
     vlm: ProviderConfig | None = None,
+    error_rows: list[dict[str, object]] | None = None,
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for step in steps:
-        plan = reasoning_plan_with_model(reasoning, step) if reasoning else plan_sampling_for_step(step)
+        plan = (
+            reasoning_plan_with_model(reasoning, step, error_rows=error_rows)
+            if reasoning
+            else plan_sampling_for_step(step)
+        )
         ts = sample_timestamps(step, plan.sample_count)
-        judge = vlm_motion_judge_with_model(vlm, step, ts) if vlm else {
+        judge = (
+            vlm_motion_judge_with_model(vlm, step, ts, error_rows=error_rows)
+            if vlm
+            else {
             "motion_detected": None,
             "alignment_ok": None,
             "summary": "vlm_not_configured",

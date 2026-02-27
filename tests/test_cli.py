@@ -168,6 +168,68 @@ def test_transcript_chunk_command(tmp_path: Path) -> None:
     assert "chunks=" in result.stdout
 
 
+def test_steps_extract_command_ai_mode_with_errors(monkeypatch, tmp_path: Path) -> None:
+    segments = tmp_path / "segments.jsonl"
+    segments.write_text(
+        '{"segment_id":"1","start_s":0.0,"end_s":1.0,"text":"now click"}\n',
+        encoding="utf-8",
+    )
+    chunks = tmp_path / "chunks.jsonl"
+    chunks.write_text(
+        '{"chunk_id":"chunk_1","start_s":0.0,"end_s":5.0,"segment_ids":["1"],"text":"now click"}\n',
+        encoding="utf-8",
+    )
+    clips = tmp_path / "clips.jsonl"
+    clips.write_text('{"segment_id":"1","clip_path":"clips/step_1.mp4"}\n', encoding="utf-8")
+    out = tmp_path / "steps_ai.jsonl"
+
+    def _fake_extract_steps_ai(_provider, _chunks, error_rows=None):
+        from course_step_extractor.models import TutorialStep
+
+        if error_rows is not None:
+            error_rows.append({"kind": "fake_error", "chunk_id": "chunk_1"})
+        return [
+            TutorialStep(
+                step_id="step_1",
+                source_segment_id="1",
+                start_s=0.0,
+                end_s=1.0,
+                clip_start_s=0.0,
+                clip_end_s=1.2,
+                instruction_text="Click the button",
+                intent="Demonstrate selection",
+                expected_outcome="Selection changes",
+                confidence=0.8,
+            )
+        ]
+
+    monkeypatch.setattr(cli, "extract_steps_from_chunks_ai", _fake_extract_steps_ai)
+    cfg_path = _config_file(tmp_path)
+    result = runner.invoke(
+        app,
+        [
+            "steps-extract",
+            "--segments",
+            str(segments),
+            "--clips-manifest",
+            str(clips),
+            "--chunks",
+            str(chunks),
+            "--mode",
+            "ai",
+            "--config",
+            str(cfg_path),
+            "--out",
+            str(out),
+        ],
+    )
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "mode=ai" in result.stdout
+    assert "parse_errors=1" in result.stdout
+    assert Path(str(out) + ".errors.jsonl").exists()
+
+
 def test_steps_extract_command_ai_mode(monkeypatch, tmp_path: Path) -> None:
     segments = tmp_path / "segments.jsonl"
     segments.write_text(
@@ -224,6 +286,57 @@ def test_steps_extract_command_ai_mode(monkeypatch, tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert out.exists()
     assert "mode=ai" in result.stdout
+
+
+def test_steps_enrich_command_ai_with_errors(monkeypatch, tmp_path: Path) -> None:
+    steps = tmp_path / "steps.jsonl"
+    steps.write_text(
+        '{"step_id":"step_1","source_segment_id":"1","start_s":0.0,"end_s":1.0,'
+        '"clip_start_s":0.0,"clip_end_s":1.2,"instruction_text":"rotate hand",'
+        '"intent":"transform_object","expected_outcome":"aligned","confidence":0.8}\n',
+        encoding="utf-8",
+    )
+    out = tmp_path / "steps.enriched.ai.jsonl"
+    cfg_path = _config_file(tmp_path)
+
+    def _fake_enrich(steps, reasoning=None, vlm=None, error_rows=None):
+        _ = steps, reasoning, vlm
+        if error_rows is not None:
+            error_rows.append({"kind": "fake_error", "step_id": "step_1"})
+        return [
+            {
+                "step_id": "step_1",
+                "source_segment_id": "1",
+                "start_s": 0.0,
+                "end_s": 1.0,
+                "clip_start_s": 0.0,
+                "clip_end_s": 1.2,
+                "instruction_text": "rotate hand",
+                "intent": "transform_object",
+                "expected_outcome": "aligned",
+                "confidence": 0.8,
+                "enrichment": {"sampling": {"count": 3}, "vlm_judgement": {}},
+            }
+        ]
+
+    monkeypatch.setattr(cli, "enrich_steps", _fake_enrich)
+    result = runner.invoke(
+        app,
+        [
+            "steps-enrich",
+            "--steps",
+            str(steps),
+            "--out",
+            str(out),
+            "--mode",
+            "ai",
+            "--config",
+            str(cfg_path),
+        ],
+    )
+    assert result.exit_code == 0
+    assert "parse_errors=1" in result.stdout
+    assert Path(str(out) + ".errors.jsonl").exists()
 
 
 def test_steps_enrich_command_heuristic(tmp_path: Path) -> None:

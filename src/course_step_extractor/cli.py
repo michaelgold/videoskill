@@ -1,15 +1,16 @@
+import json
 from pathlib import Path
 
 import typer
 
 from course_step_extractor.chunking import chunk_segments, read_chunks_jsonl, write_chunks_jsonl
 from course_step_extractor.clips import extract_clips, read_frames_jsonl, write_clips_jsonl
+from course_step_extractor.enrich import enrich_steps, read_steps_jsonl, write_enriched_steps_jsonl
 from course_step_extractor.extractor import (
     extract_steps,
     read_clips_manifest_jsonl,
     write_steps_jsonl,
 )
-from course_step_extractor.enrich import enrich_steps, read_steps_jsonl, write_enriched_steps_jsonl
 from course_step_extractor.extractor_ai import extract_steps_from_chunks_ai
 from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
 from course_step_extractor.models import Step
@@ -123,17 +124,22 @@ def steps_extract(
 ) -> None:
     clips_by_segment = read_clips_manifest_jsonl(clips_manifest)
 
+    error_rows: list[dict[str, object]] = []
     if mode == "ai":
         if chunks is None:
             raise typer.BadParameter("--chunks is required when --mode ai")
         cfg = AppConfig.load(config)
         parsed_chunks = read_chunks_jsonl(chunks)
-        steps = extract_steps_from_chunks_ai(cfg.reasoning, parsed_chunks)
+        steps = extract_steps_from_chunks_ai(cfg.reasoning, parsed_chunks, error_rows=error_rows)
     else:
         parsed_segments = read_segments_jsonl(segments)
         steps = extract_steps(parsed_segments, clips_by_segment)
 
     write_steps_jsonl(steps, out)
+    if error_rows:
+        err_out = out.with_suffix(out.suffix + ".errors.jsonl")
+        err_out.write_text("\n".join(json.dumps(r) for r in error_rows) + "\n", encoding="utf-8")
+        typer.echo(f"parse_errors={len(error_rows)} errors_out={err_out}")
     typer.echo(f"steps={len(steps)} out={out} mode={mode}")
 
 
@@ -145,12 +151,22 @@ def steps_enrich(
     config: Path = typer.Option(Path("config.json"), help="Provider config path for ai mode"),
 ) -> None:
     parsed_steps = read_steps_jsonl(steps)
+    error_rows: list[dict[str, object]] = []
     if mode == "ai":
         cfg = AppConfig.load(config)
-        rows = enrich_steps(parsed_steps, reasoning=cfg.reasoning, vlm=cfg.vlm)
+        rows = enrich_steps(
+            parsed_steps,
+            reasoning=cfg.reasoning,
+            vlm=cfg.vlm,
+            error_rows=error_rows,
+        )
     else:
-        rows = enrich_steps(parsed_steps, reasoning=None, vlm=None)
+        rows = enrich_steps(parsed_steps, reasoning=None, vlm=None, error_rows=error_rows)
     write_enriched_steps_jsonl(rows, out)
+    if error_rows:
+        err_out = out.with_suffix(out.suffix + ".errors.jsonl")
+        err_out.write_text("\n".join(json.dumps(r) for r in error_rows) + "\n", encoding="utf-8")
+        typer.echo(f"parse_errors={len(error_rows)} errors_out={err_out}")
     typer.echo(f"enriched_steps={len(rows)} out={out} mode={mode}")
 
 
