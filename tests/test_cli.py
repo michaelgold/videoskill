@@ -185,6 +185,11 @@ def test_steps_extract_command(monkeypatch, tmp_path: Path) -> None:
         return [
             TutorialStep(
                 step_id="step_1",
+                source_segment_id="1",
+                start_s=0.0,
+                end_s=1.0,
+                clip_start_s=0.0,
+                clip_end_s=1.2,
                 instruction_text="Click the button",
                 intent="Demonstrate selection",
                 expected_outcome="Selection changes",

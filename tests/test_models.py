@@ -29,6 +29,11 @@ def test_transcript_segment_time_validation() -> None:
 def test_tutorial_step_bounds() -> None:
     step = TutorialStep(
         step_id="s1",
+        source_segment_id="1",
+        start_s=0.0,
+        end_s=1.0,
+        clip_start_s=0.0,
+        clip_end_s=1.2,
         instruction_text="Do thing",
         intent="Create geometry",
         expected_outcome="Mesh appears",
@@ -39,6 +44,11 @@ def test_tutorial_step_bounds() -> None:
     with pytest.raises(Exception):
         TutorialStep(
             step_id="s2",
+            source_segment_id="2",
+            start_s=0.0,
+            end_s=1.0,
+            clip_start_s=0.0,
+            clip_end_s=1.0,
             instruction_text="x",
             intent="y",
             expected_outcome="z",

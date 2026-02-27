@@ -35,11 +35,20 @@ def extract_single_step(
         instruction = "Review transcript segment"
 
     outcome = "Action reflected in timeline segment"
+    clip_start_s = segment.start_s
+    clip_end_s = segment.end_s
     if clip_row and clip_row.get("clip_path"):
         outcome = f"Action visible in clip {clip_row['clip_path']}"
+        clip_start_s = float(clip_row.get("clip_start_s", segment.start_s))
+        clip_end_s = float(clip_row.get("clip_end_s", segment.end_s))
 
     return TutorialStep(
         step_id=f"step_{segment.segment_id}",
+        source_segment_id=segment.segment_id,
+        start_s=segment.start_s,
+        end_s=segment.end_s,
+        clip_start_s=clip_start_s,
+        clip_end_s=clip_end_s,
         instruction_text=instruction,
         intent="Replicate demonstrated tutorial action",
         expected_outcome=outcome,
