@@ -245,7 +245,7 @@ def test_steps_extract_command_ai_mode(monkeypatch, tmp_path: Path) -> None:
     clips.write_text('{"segment_id":"1","clip_path":"clips/step_1.mp4"}\n', encoding="utf-8")
     out = tmp_path / "steps_ai.jsonl"
 
-    def _fake_extract_steps_ai(_provider, _chunks):
+    def _fake_extract_steps_ai(_provider, _chunks, error_rows=None):
         from course_step_extractor.models import TutorialStep
 
         return [
@@ -363,8 +363,9 @@ def test_steps_enrich_command_ai_direct(monkeypatch, tmp_path: Path) -> None:
         vlm=None,
         error_rows=None,
         orchestrate_with_reasoning=True,
+        frames_by_step=None,
     ):
-        _ = steps, reasoning, vlm, error_rows
+        _ = steps, reasoning, vlm, error_rows, frames_by_step
         assert orchestrate_with_reasoning is False
         return []
 
@@ -451,11 +452,32 @@ def test_steps_extract_command(monkeypatch, tmp_path: Path) -> None:
 def test_markdown_render_command(tmp_path: Path) -> None:
     steps = tmp_path / "steps.jsonl"
     steps.write_text(
-        '{"step_id":"step_1","instruction_text":"Add cube","intent":"Create","expected_outcome":"Cube","start_s":0.0,"end_s":1.0,"clip_start_s":0.0,"clip_end_s":1.2,"confidence":0.8}\n',
+        "{"
+        '"step_id":"step_1",'
+        '"instruction_text":"Add cube",'
+        '"intent":"Create",'
+        '"expected_outcome":"Cube",'
+        '"start_s":0.0,'
+        '"end_s":1.0,'
+        '"clip_start_s":0.0,'
+        '"clip_end_s":1.2,'
+        '"confidence":0.8'
+        "}\n",
         encoding="utf-8",
     )
     out = tmp_path / "lesson.md"
-    result = runner.invoke(app, ["markdown-render", "--steps", str(steps), "--out", str(out), "--title", "Lesson 1"])
+    result = runner.invoke(
+        app,
+        [
+            "markdown-render",
+            "--steps",
+            str(steps),
+            "--out",
+            str(out),
+            "--title",
+            "Lesson 1",
+        ],
+    )
     assert result.exit_code == 0
     assert out.exists()
     assert "markdown_steps=1" in result.stdout

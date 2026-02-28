@@ -166,7 +166,7 @@ def vlm_motion_judge_with_model(
 
     system = (
         "You are a vision model judging if a tutorial step visually occurred. "
-        "Return strict JSON: {motion_detected:boolean, alignment_ok:boolean|null, summary:string, confidence:number_0_to_1}."
+        "Return strict JSON with fields: motion_detected, alignment_ok, summary, confidence."
     )
     content: list[dict[str, Any]] = [
         {
@@ -190,7 +190,14 @@ def vlm_motion_judge_with_model(
             content.append({"type": "image_url", "image_url": {"url": data_url}})
         except Exception as exc:  # noqa: BLE001
             if error_rows is not None:
-                error_rows.append({"kind": "frame_read_error", "step_id": step.step_id, "path": p, "error": str(exc)})
+                error_rows.append(
+                    {
+                        "kind": "frame_read_error",
+                        "step_id": step.step_id,
+                        "path": p,
+                        "error": str(exc),
+                    }
+                )
 
     payload = {
         "model": provider.model,
@@ -211,11 +218,13 @@ def vlm_motion_judge_with_model(
             text = " ".join(str(x.get("text", "")) for x in raw if isinstance(x, dict))
         else:
             text = str(raw)
+
         text = text.strip()
         if text.startswith("```"):
             text = text.strip("`")
             if text.lower().startswith("json"):
                 text = text[4:].strip()
+
         parsed = VlmJudgeModel.model_validate(json.loads(text))
         return parsed.model_dump()
     except Exception as exc:  # noqa: BLE001
@@ -247,7 +256,7 @@ def reasoning_finalize_judgement(
 ) -> dict[str, object]:
     system = (
         "You are a quality gate for tutorial-step verification. "
-        "Given step context, timestamps, and raw VLM judgement, return a normalized final judgement."
+        "Given step context, timestamps, and raw VLM judgement, normalize final judgement."
     )
     user = json.dumps(
         {
@@ -290,15 +299,38 @@ def enrich_steps(
             else plan_sampling_for_step(step)
         )
         ts = sample_timestamps(step, plan.sample_count)
+
+        frame_paths: list[str] = []
+        if frames_by_step is not None:
+            frame_paths = [
+                str(p) for p in frames_by_step.get(step.step_id, {}).get("frame_paths", [])
+            ]
+
         judge = (
-            vlm_motion_judge_with_model(vlm, step, ts, error_rows=error_rows)
+            vlm_motion_judge_with_model(
+                vlm,
+                step,
+                ts,
+                frame_paths=frame_paths,
+                error_rows=error_rows,
+            )
             if vlm
             else {
-            "motion_detected": None,
-            "alignment_ok": None,
-            "summary": "vlm_not_configured",
-            "confidence": 0.0,
-        }
+                "motion_detected": None,
+                "alignment_ok": None,
+                "summary": "vlm_not_configured",
+                "confidence": 0.0,
+            }
+        )
+
+        if reasoning and orchestrate_with_reasoning:
+            judge = reasoning_finalize_judgement(
+                reasoning,
+                step,
+                ts,
+                judge,
+                error_rows=error_rows,
+            )
 
         rows.append(
             {
@@ -314,6 +346,7 @@ def enrich_steps(
                 },
             }
         )
+
     return rows
 
 

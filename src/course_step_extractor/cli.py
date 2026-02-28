@@ -20,8 +20,10 @@ from course_step_extractor.extractor_ai import extract_steps_from_chunks_ai
 from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
 from course_step_extractor.frames import (
     extract_frames_for_steps,
-    read_steps_jsonl as read_steps_for_frames,
     write_frames_manifest_jsonl,
+)
+from course_step_extractor.frames import (
+    read_steps_jsonl as read_steps_for_frames,
 )
 from course_step_extractor.models import Step
 from course_step_extractor.providers import ping_provider

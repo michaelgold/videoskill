@@ -5,7 +5,8 @@ from pathlib import Path
 
 
 def read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return [json.loads(line) for line in lines if line.strip()]
 
 
 def render_markdown(steps: list[dict], title: str = "Lesson Steps") -> str:
