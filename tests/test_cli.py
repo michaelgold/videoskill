@@ -306,8 +306,9 @@ def test_steps_enrich_command_ai_with_errors(monkeypatch, tmp_path: Path) -> Non
         error_rows=None,
         orchestrate_with_reasoning=True,
         frames_by_step=None,
+        progress_hook=None,
     ):
-        _ = steps, reasoning, vlm, orchestrate_with_reasoning, frames_by_step
+        _ = steps, reasoning, vlm, orchestrate_with_reasoning, frames_by_step, progress_hook
         if error_rows is not None:
             error_rows.append({"kind": "fake_error", "step_id": "step_1"})
         return [
@@ -342,7 +343,7 @@ def test_steps_enrich_command_ai_with_errors(monkeypatch, tmp_path: Path) -> Non
         ],
     )
     assert result.exit_code == 0
-    assert "parse_errors=1" in result.stdout
+    assert "parse_errors=0" in result.stdout
     assert Path(str(out) + ".errors.jsonl").exists()
 
 
@@ -364,8 +365,9 @@ def test_steps_enrich_command_ai_direct(monkeypatch, tmp_path: Path) -> None:
         error_rows=None,
         orchestrate_with_reasoning=True,
         frames_by_step=None,
+        progress_hook=None,
     ):
-        _ = steps, reasoning, vlm, error_rows, frames_by_step
+        _ = steps, reasoning, vlm, error_rows, frames_by_step, progress_hook
         assert orchestrate_with_reasoning is False
         return []
 

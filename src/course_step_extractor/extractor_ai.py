@@ -46,7 +46,7 @@ def _call_reasoning_chunk(
         system,
         json.dumps(user),
         ChunkStepResponse,
-        max_retries=2,
+        max_retries=5,
         error_rows=error_rows,
         error_context={"chunk_id": chunk.chunk_id, "stage": "chunk_extract"},
     )

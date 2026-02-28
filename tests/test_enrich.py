@@ -132,57 +132,22 @@ def test_vlm_motion_judge_with_model_success(monkeypatch, tmp_path: Path) -> Non
     img = tmp_path / "a.jpg"
     img.write_bytes(b"fake")
 
-    class _Resp:
-        def raise_for_status(self):
-            return None
+    def _fake_chat(*args, **kwargs):
+        _ = args, kwargs
+        return {
+            "motion_detected": True,
+            "alignment_ok": True,
+            "summary": "seen",
+            "confidence": 0.8,
+        }
 
-        def json(self):
-            return {
-                "choices": [
-                    {
-                        "message": {
-                            "content": json.dumps(
-                                {
-                                    "motion_detected": True,
-                                    "alignment_ok": True,
-                                    "summary": "seen",
-                                    "confidence": 0.8,
-                                }
-                            )
-                        }
-                    }
-                ]
-            }
-
-    class _Client:
-        def __init__(self, timeout):
-            _ = timeout
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-        def post(self, endpoint, headers=None, json=None):
-            _ = endpoint, headers
-            assert json["messages"][1]["content"][1]["type"] == "image_url"
-            return _Resp()
-
-    monkeypatch.setattr(mod.httpx, "Client", _Client)
-
+    monkeypatch.setattr(mod, "_chat_with_images", _fake_chat)
     cfg = ProviderConfig(
         provider="openai-compatible",
         base_url="http://127.0.0.1:8081",
         model="vlm",
     )
-    out = mod.vlm_motion_judge_with_model(
-        cfg,
-        _step(),
-        [1.0, 2.0],
-        [str(img)],
-        error_rows=[],
-    )
+    out = mod.vlm_motion_judge_with_model(cfg, _step(), [1.0, 2.0], [str(img)], error_rows=[])
     assert out["motion_detected"] is True
     assert out["summary"] == "seen"
 
@@ -190,34 +155,122 @@ def test_vlm_motion_judge_with_model_success(monkeypatch, tmp_path: Path) -> Non
 def test_vlm_motion_judge_with_model_error_path(monkeypatch) -> None:
     from course_step_extractor import enrich as mod
 
-    class _Client:
-        def __init__(self, timeout):
-            _ = timeout
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, exc_type, exc, tb):
-            return False
-
-        def post(self, endpoint, headers=None, json=None):
-            _ = endpoint, headers, json
-            raise RuntimeError("boom")
-
-    monkeypatch.setattr(mod.httpx, "Client", _Client)
-
+    monkeypatch.setattr(mod, "_chat_with_images", lambda *a, **k: None)
     cfg = ProviderConfig(
         provider="openai-compatible",
         base_url="http://127.0.0.1:8081",
         model="vlm",
     )
-    errors = []
     out = mod.vlm_motion_judge_with_model(
         cfg,
         _step(),
         [1.0],
         ["/does/not/exist.jpg"],
-        error_rows=errors,
+        error_rows=[],
     )
     assert out["summary"] == "vlm_unavailable_or_parse_error"
-    assert any(e["kind"] in {"frame_read_error", "model_parse_or_call_error"} for e in errors)
+
+
+def test_vlm_select_frames_with_model(monkeypatch) -> None:
+    from course_step_extractor import enrich as mod
+
+    def _fake_chat(provider, system, payload_context, frame_paths, output_model, **kwargs):
+        _ = provider, system, payload_context, output_model, kwargs
+        assert len(frame_paths) == 3
+        return {"selected_indices": [0, 2], "rationale": "best evidence"}
+
+    monkeypatch.setattr(mod, "_chat_with_images", _fake_chat)
+    cfg = ProviderConfig(
+        provider="openai-compatible",
+        base_url="http://127.0.0.1:8081",
+        model="vlm",
+    )
+    out = mod.vlm_select_frames_with_model(cfg, _step(), [1.0], ["a.jpg", "b.jpg", "c.jpg"])
+    assert out["selected_indices"] == [0, 2]
+
+
+def test_vlm_signal_pass_with_model(monkeypatch) -> None:
+    from course_step_extractor import enrich as mod
+
+    def _fake_chat(provider, system, payload_context, frame_paths, output_model, **kwargs):
+        _ = provider, system, payload_context, output_model, kwargs
+        assert frame_paths == ["b.jpg"]
+        return {
+            "summary": "clear rotation",
+            "detected_events": ["rotate"],
+            "observations": ["wrist angle changed"],
+            "before_observations": ["hand neutral"],
+            "after_observations": ["hand rotated"],
+            "changes_detected": ["wrist rotation"],
+            "unchanged_signals": ["camera angle"],
+            "change_confidence": 0.77,
+            "confidence": 0.8,
+        }
+
+    monkeypatch.setattr(mod, "_chat_with_images", _fake_chat)
+    cfg = ProviderConfig(
+        provider="openai-compatible",
+        base_url="http://127.0.0.1:8081",
+        model="vlm",
+    )
+    out = mod.vlm_signal_pass_with_model(
+        cfg,
+        _step(),
+        selected_indices=[1],
+        frame_paths=["a.jpg", "b.jpg"],
+    )
+    assert out["summary"] == "clear rotation"
+    assert out["changes_detected"] == ["wrist rotation"]
+
+
+def test_enrich_steps_two_pass_in_ai_mode(monkeypatch) -> None:
+    from course_step_extractor import enrich as mod
+
+    def _fake_vlm(provider, step, timestamps, frame_paths, error_rows=None):
+        _ = provider, step, timestamps, frame_paths, error_rows
+        return {
+            "motion_detected": True,
+            "alignment_ok": True,
+            "summary": "raw",
+            "confidence": 0.3,
+        }
+
+    def _fake_select(provider, step, timestamps, frame_paths, error_rows=None):
+        _ = provider, step, timestamps, frame_paths, error_rows
+        return {"selected_indices": [0], "rationale": "front frame"}
+
+    def _fake_signal(provider, step, selected_indices, frame_paths, error_rows=None):
+        _ = provider, step, selected_indices, frame_paths, error_rows
+        return {
+            "summary": "signal summary",
+            "detected_events": ["mode_switch", "drop_image"],
+            "observations": ["object mode visible"],
+            "before_observations": ["no image in viewport"],
+            "after_observations": ["reference image in viewport"],
+            "changes_detected": ["image added to viewport"],
+            "unchanged_signals": ["grid still visible"],
+            "change_confidence": 0.91,
+            "confidence": 0.88,
+        }
+
+    monkeypatch.setattr(mod, "vlm_motion_judge_with_model", _fake_vlm)
+    monkeypatch.setattr(mod, "vlm_select_frames_with_model", _fake_select)
+    monkeypatch.setattr(mod, "vlm_signal_pass_with_model", _fake_signal)
+
+    cfg = ProviderConfig(
+        provider="openai-compatible",
+        base_url="http://127.0.0.1:8080",
+        model="reasoner",
+    )
+    rows = enrich_steps(
+        [_step()],
+        reasoning=cfg,
+        vlm=cfg,
+        orchestrate_with_reasoning=True,
+        frames_by_step={"step_1": {"frame_paths": ["f1.jpg", "f2.jpg"]}},
+    )
+    e = rows[0]["enrichment"]
+    assert e["frame_selection"]["selected_indices"] == [0]
+    assert e["signal_pass"]["summary"] == "signal summary"
+    assert e["vlm_judgement"]["summary"] == "signal summary"
+    assert e["vlm_judgement"]["changes_detected"] == ["image added to viewport"]

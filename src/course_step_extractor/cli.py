@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 
 import typer
@@ -180,6 +181,19 @@ def steps_enrich(
     parsed_steps = read_steps_jsonl(steps)
     frames_by_step = read_frames_manifest_jsonl(frames_manifest) if frames_manifest else None
     error_rows: list[dict[str, object]] = []
+    start_ts = time.time()
+
+    def _progress(evt: dict[str, object]) -> None:
+        step_idx = evt.get("step_index", "?")
+        total = evt.get("total_steps", "?")
+        sid = evt.get("step_id", "")
+        stage = evt.get("stage", "")
+        elapsed = time.time() - start_ts
+        typer.echo(
+            f"progress step={step_idx}/{total} step_id={sid} stage={stage} "
+            f"errors_so_far={len(error_rows)} elapsed_s={elapsed:.1f}"
+        )
+
     if mode == "ai":
         cfg = AppConfig.load(config)
         rows = enrich_steps(
@@ -189,6 +203,7 @@ def steps_enrich(
             error_rows=error_rows,
             orchestrate_with_reasoning=True,
             frames_by_step=frames_by_step,
+            progress_hook=_progress,
         )
     elif mode == "ai-direct":
         cfg = AppConfig.load(config)
@@ -199,6 +214,7 @@ def steps_enrich(
             error_rows=error_rows,
             orchestrate_with_reasoning=False,
             frames_by_step=frames_by_step,
+            progress_hook=_progress,
         )
     else:
         rows = enrich_steps(
@@ -207,12 +223,25 @@ def steps_enrich(
             vlm=None,
             error_rows=error_rows,
             frames_by_step=frames_by_step,
+            progress_hook=_progress,
         )
     write_enriched_steps_jsonl(rows, out)
     if error_rows:
         err_out = out.with_suffix(out.suffix + ".errors.jsonl")
         err_out.write_text("\n".join(json.dumps(r) for r in error_rows) + "\n", encoding="utf-8")
-        typer.echo(f"parse_errors={len(error_rows)} errors_out={err_out}")
+        transient_recovered = sum(1 for r in error_rows if r.get("kind") == "transient_recovered")
+        unresolved_final = sum(1 for r in error_rows if r.get("kind") == "unresolved_final")
+        parse_errors = sum(1 for r in error_rows if r.get("kind") == "model_parse_or_call_error")
+        typer.echo(
+            " ".join(
+                [
+                    f"parse_errors={parse_errors}",
+                    f"transient_recovered={transient_recovered}",
+                    f"unresolved_final={unresolved_final}",
+                    f"errors_out={err_out}",
+                ]
+            )
+        )
     typer.echo(f"enriched_steps={len(rows)} out={out} mode={mode}")
 
 
