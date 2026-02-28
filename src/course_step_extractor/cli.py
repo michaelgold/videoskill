@@ -5,7 +5,12 @@ import typer
 
 from course_step_extractor.chunking import chunk_segments, read_chunks_jsonl, write_chunks_jsonl
 from course_step_extractor.clips import extract_clips, read_frames_jsonl, write_clips_jsonl
-from course_step_extractor.enrich import enrich_steps, read_steps_jsonl, write_enriched_steps_jsonl
+from course_step_extractor.enrich import (
+    enrich_steps,
+    read_frames_manifest_jsonl,
+    read_steps_jsonl,
+    write_enriched_steps_jsonl,
+)
 from course_step_extractor.extractor import (
     extract_steps,
     read_clips_manifest_jsonl,
@@ -168,8 +173,10 @@ def steps_enrich(
     out: Path = typer.Option(..., help="Output enriched steps JSONL"),
     mode: str = typer.Option("heuristic", help="heuristic|ai|ai-direct"),
     config: Path = typer.Option(Path("config.json"), help="Provider config path for ai mode"),
+    frames_manifest: Path | None = typer.Option(None, help="Optional step frame manifest JSONL"),
 ) -> None:
     parsed_steps = read_steps_jsonl(steps)
+    frames_by_step = read_frames_manifest_jsonl(frames_manifest) if frames_manifest else None
     error_rows: list[dict[str, object]] = []
     if mode == "ai":
         cfg = AppConfig.load(config)
@@ -179,6 +186,7 @@ def steps_enrich(
             vlm=cfg.vlm,
             error_rows=error_rows,
             orchestrate_with_reasoning=True,
+            frames_by_step=frames_by_step,
         )
     elif mode == "ai-direct":
         cfg = AppConfig.load(config)
@@ -188,9 +196,16 @@ def steps_enrich(
             vlm=cfg.vlm,
             error_rows=error_rows,
             orchestrate_with_reasoning=False,
+            frames_by_step=frames_by_step,
         )
     else:
-        rows = enrich_steps(parsed_steps, reasoning=None, vlm=None, error_rows=error_rows)
+        rows = enrich_steps(
+            parsed_steps,
+            reasoning=None,
+            vlm=None,
+            error_rows=error_rows,
+            frames_by_step=frames_by_step,
+        )
     write_enriched_steps_jsonl(rows, out)
     if error_rows:
         err_out = out.with_suffix(out.suffix + ".errors.jsonl")

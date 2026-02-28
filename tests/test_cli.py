@@ -305,8 +305,9 @@ def test_steps_enrich_command_ai_with_errors(monkeypatch, tmp_path: Path) -> Non
         vlm=None,
         error_rows=None,
         orchestrate_with_reasoning=True,
+        frames_by_step=None,
     ):
-        _ = steps, reasoning, vlm, orchestrate_with_reasoning
+        _ = steps, reasoning, vlm, orchestrate_with_reasoning, frames_by_step
         if error_rows is not None:
             error_rows.append({"kind": "fake_error", "step_id": "step_1"})
         return [

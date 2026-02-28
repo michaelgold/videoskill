@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import base64
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
+import httpx
 from pydantic import BaseModel, Field
 
 from course_step_extractor.ai_adapter import run_structured
@@ -44,6 +47,31 @@ def read_steps_jsonl(path: Path) -> list[TutorialStep]:
             continue
         steps.append(TutorialStep.model_validate(json.loads(line)))
     return steps
+
+
+def read_frames_manifest_jsonl(path: Path) -> dict[str, dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        payload = json.loads(line)
+        step_id = str(payload.get("step_id", ""))
+        if not step_id:
+            continue
+        rows[step_id] = payload
+    return rows
+
+
+def _data_url_for_image(path: Path) -> str:
+    suffix = path.suffix.lower()
+    mime = "image/jpeg"
+    if suffix == ".png":
+        mime = "image/png"
+    elif suffix == ".webp":
+        mime = "image/webp"
+    b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+    return f"data:{mime};base64,{b64}"
 
 
 def _duration(step: TutorialStep) -> float:
@@ -127,33 +155,81 @@ def vlm_motion_judge_with_model(
     provider: ProviderConfig,
     step: TutorialStep,
     timestamps: list[float],
+    frame_paths: list[str],
     error_rows: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
+    endpoint = str(provider.base_url).rstrip("/") + "/v1/chat/completions"
+    headers = {"Content-Type": "application/json"}
+    key = provider.api_key()
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+
     system = (
-        "You judge whether tutorial step motion/result likely occurred based on provided timestamps context. "
-        "Return JSON {motion_detected:bool, alignment_ok:bool|null, summary:str, confidence:0..1}."
+        "You are a vision model judging if a tutorial step visually occurred. "
+        "Return strict JSON: {motion_detected:boolean, alignment_ok:boolean|null, summary:string, confidence:number_0_to_1}."
     )
-    user = json.dumps(
+    content: list[dict[str, Any]] = [
         {
-            "step_id": step.step_id,
-            "instruction_text": step.instruction_text,
-            "intent": step.intent,
-            "expected_outcome": step.expected_outcome,
-            "timestamps": timestamps,
+            "type": "text",
+            "text": json.dumps(
+                {
+                    "step_id": step.step_id,
+                    "instruction_text": step.instruction_text,
+                    "intent": step.intent,
+                    "expected_outcome": step.expected_outcome,
+                    "timestamps": timestamps,
+                    "frame_count": len(frame_paths),
+                }
+            ),
         }
-    )
+    ]
+
+    for p in frame_paths[:10]:
+        try:
+            data_url = _data_url_for_image(Path(p))
+            content.append({"type": "image_url", "image_url": {"url": data_url}})
+        except Exception as exc:  # noqa: BLE001
+            if error_rows is not None:
+                error_rows.append({"kind": "frame_read_error", "step_id": step.step_id, "path": p, "error": str(exc)})
+
+    payload = {
+        "model": provider.model,
+        "messages": [
+            {"role": "system", "content": system},
+            {"role": "user", "content": content},
+        ],
+    }
+
     try:
-        parsed = run_structured(
-            provider,
-            system,
-            user,
-            VlmJudgeModel,
-            max_retries=2,
-            error_rows=error_rows,
-            error_context={"step_id": step.step_id, "stage": "vlm_judge"},
-        )
+        with httpx.Client(timeout=provider.timeout_s) as client:
+            res = client.post(endpoint, headers=headers, json=payload)
+            res.raise_for_status()
+            body = res.json()
+
+        raw = body["choices"][0]["message"]["content"]
+        if isinstance(raw, list):
+            text = " ".join(str(x.get("text", "")) for x in raw if isinstance(x, dict))
+        else:
+            text = str(raw)
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.lower().startswith("json"):
+                text = text[4:].strip()
+        parsed = VlmJudgeModel.model_validate(json.loads(text))
         return parsed.model_dump()
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        if error_rows is not None:
+            error_rows.append(
+                {
+                    "kind": "model_parse_or_call_error",
+                    "provider": provider.provider,
+                    "model": provider.model,
+                    "stage": "vlm_judge",
+                    "step_id": step.step_id,
+                    "error": str(exc),
+                }
+            )
         return {
             "motion_detected": False,
             "alignment_ok": None,
@@ -204,6 +280,7 @@ def enrich_steps(
     vlm: ProviderConfig | None = None,
     error_rows: list[dict[str, object]] | None = None,
     orchestrate_with_reasoning: bool = True,
+    frames_by_step: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for step in steps:
@@ -231,6 +308,7 @@ def enrich_steps(
                         "count": plan.sample_count,
                         "rationale": plan.rationale,
                         "timestamps": ts,
+                        "frame_paths": frame_paths,
                     },
                     "vlm_judgement": judge,
                 },
