@@ -1,141 +1,118 @@
 # BACKLOG.md — video-skill-extractor
 
 ## Mission
-Turn course recordings into **structured markdown lesson steps** (and later Slidev), with deterministic, schema-validated extraction.
+Build a generalized **video skill extraction library** that converts narrated video into:
+1) structured skill steps,
+2) visually grounded enrichment,
+3) timeline-ready metadata for editors and robotics workflows.
+
+---
 
 ## Current Status
 
-### ✅ Done
-- Repo scaffolded with TDD workflow
-- `INSTRUCTIONS.md`, `Makefile`, coverage gate (`>=90%`)
-- Pydantic models scaffold + validation tests
-- `pydantic-ai` dependency added and verified
-- Provider config + health checks:
-  - `config-validate`
-  - `providers-ping`
-- Transcript/frames/media stages:
+### ✅ Shipped
+- End-to-end CLI pipeline:
+  - `transcribe`
   - `transcript-parse`
-  - `frames-plan`
-  - `clips-extract`
-- `steps-extract` scaffold (deterministic placeholder output)
-
-### ⚠️ In progress / next
-- PydanticAI-backed chunked extraction (map/reduce)
-- Markdown step renderer
-- Batch processing over class folders
-
----
-
-## P0 — Core pipeline (v1 markdown output)
-
-### P0.1 Schemas
-- [ ] Add models:
-  - `TranscriptSegment`
-  - `FrameCandidate`
-  - `TutorialStep`
-  - `LessonMarkdown`
-- [ ] Expand `TutorialStep` with replication-critical fields:
-  - `instruction_text`
-  - `intent`
-  - `objects_tools_settings`
-  - `expected_outcome`
-  - `failure_modes`
-  - `confidence`
-  - `step_clip_path`
-- [ ] Add strict validators (timestamps, non-empty fields, enums)
-
-### P0.2 Transcript ingestion
-- [ ] `transcript parse` command
-- [ ] Support Whisper JSON (first), then SRT/VTT
-- [ ] Normalize to canonical segment JSONL
-
-### P0.3 Frame planning
-- [ ] `frames plan` command
-- [ ] Heuristics:
-  - pause boundaries
-  - cue words ("now", "next", "then", "add")
-  - max segment duration cap
-- [ ] Emit candidate timestamps per segment (start/mid/end)
-- [ ] Output step windows suitable for clip extraction (`clip_start`, `clip_end`)
-
-### P0.4 Visual evidence clips (human inspection)
-- [ ] `clips extract` command
-- [ ] Generate short mp4 per step window (e.g., 3–8s)
-- [ ] Persist clip paths alongside structured step outputs
-- [ ] Add quick QA mode to review clips sequentially
-
-### P0.5 Extraction
-- [ ] `steps extract` command (PydanticAI-backed)
-- [ ] Add transcript chunking stage (sliding windows + overlap)
-- [ ] Map step extraction per chunk (strict schema, retries)
-- [ ] Reduce pass: merge/dedupe/normalize steps across chunks
-- [ ] Adapter layer around model client
-- [ ] Strict structured output + retry/repair for invalid objects
-- [ ] Require step fields sufficient for agent replication (action + intent + expected outcome)
-
-### P0.6 Markdown rendering
-- [ ] `markdown render` command
-- [ ] Output sections:
-  - title/goals
-  - tools/settings
-  - numbered steps
-  - checkpoints
-  - pitfalls
-- [ ] Per-step structure should include:
-  - Action
-  - Why (intent)
-  - Expected result
-  - Failure checks
-  - Clip reference/path
+  - `transcript-chunk`
+  - `steps-extract` (AI)
+  - `frames-extract`
+  - `steps-enrich` (heuristic / ai-direct / ai)
+  - `markdown-render`
+- PydanticAI-based model calling with explicit OpenAI-compatible provider wiring.
+- Two-pass enrichment in `--mode ai`:
+  - frame selection
+  - signal extraction (before/after/change fields)
+- Retry/backoff + jitter + telemetry:
+  - `parse_errors`
+  - `transient_recovered`
+  - `unresolved_final`
+- Stepwise progress logging for long enrich runs.
+- Quality gates stable:
+  - lint + tests + coverage (`>=90%`).
+- Package/CLI rename complete:
+  - package: `video_skill_extractor`
+  - CLI: `video-skill`
 
 ---
 
-## P1 — Quality + scale
+## P0 — Reliability hardening (active)
 
-### P1.1 Validation/repair
-- [ ] Deduplicate near-identical steps
-- [ ] Detect missing transitions and flag
-- [ ] Add confidence scoring per step
+### P0.1 Enrichment reliability
+- [ ] Reduce `sampling_plan` validation churn (still largest error source).
+- [ ] Improve strict structured compliance for reasoning outputs.
+- [ ] Add stage-specific timeout tuning for image-heavy calls.
+- [ ] Improve fallback behavior diagnostics in error manifest.
 
-### P1.2 Batch processing
-- [ ] `course run` command over directory trees
-- [ ] Resumable job state + per-lesson outputs
+### P0.2 Observability
+- [ ] Add run-level summary file (`*.run_report.json`) with per-stage stats.
+- [ ] Add optional per-step latency histogram output.
+- [ ] Add `--quiet-progress` toggle for CI usage.
 
-### P1.3 Metrics
-- [ ] Report:
-  - segments processed
-  - steps extracted
-  - rejected/invalid steps
-  - average confidence
-
----
-
-## P2 — Presentation output
-
-### P2.1 Slidev bridge
-- [ ] Markdown-to-Slidev transformer
-- [ ] Template presets (concise vs detailed)
-
-### P2.2 Media linking
-- [ ] Attach keyframe images to relevant steps
-- [ ] Optional per-step thumbnails
+### P0.3 Repeatability
+- [ ] Add deterministic run-id/version stamping in output metadata.
+- [ ] Add golden smoke fixtures for `ai` mode output shape.
 
 ---
 
-## P3 — Optional optimization layer
+## P1 — OTIO + editor bridge
 
-### P3.1 Reasoning planner
-- [ ] Add a reasoning-model stage to pick high-value timestamps from Whisper before Gemma extraction
+### P1.1 OTIO foundation
+- [ ] Add dependency: `OpenTimelineIO`.
+- [ ] Implement `timeline-otio` command from enriched steps.
+- [ ] Define and freeze metadata namespace (e.g. `com.corememory.edit.*`).
+- [ ] Export `.otio` first; add `.otioz` option.
 
-### P3.2 DSPy (optional, later)
-- [ ] Evaluate DSPy only after baseline extraction metrics are stable
-- [ ] Use for optimization, not initial correctness
+### P1.2 Edit planning artifacts
+- [ ] Define `editplan` schema.
+- [ ] Define `textpack` schema (headline, bullets, emphasis).
+- [ ] Define `asset_manifest` schema.
+- [ ] Attach template bindings and confidence metadata.
+
+### P1.3 Resolve bridge
+- [ ] Create Resolve materializer script prototype.
+- [ ] Map OTIO markers/metadata -> editable title/gfx inserts.
+- [ ] Add pilot template set (3 templates):
+  - lower_third
+  - step_callout
+  - highlight_box
 
 ---
 
-## Immediate Next 5 Tasks
-1. Add `transcript-chunk` (time-window + overlap) and tests.
-2. Add PydanticAI `steps-extract` map pass per chunk (mocked tests first).
-3. Add reduce/merge pass for dedupe + ordering across chunk outputs.
-4. Add `markdown-render` with per-step clip references and snapshot tests.
-5. Add `pipeline-run` orchestration command for parse→plan→clips→extract→markdown.
+## P2 — Research track (video + narration)
+
+### P2.1 Benchmark spine
+- [ ] Build benchmark harness for narration/timeline ablations.
+- [ ] Implement 4-condition ladder:
+  1. video-only
+  2. video+ASR
+  3. +timeline structure
+  4. +evidence/confidence
+- [ ] Add boundary jitter robustness tests.
+
+### P2.2 Dataset/format alignment
+- [ ] Define canonical sidecar schema v1 for timeline semantics.
+- [ ] Add OTIO + sidecar alignment docs for reproducibility.
+
+---
+
+## P3 — Robotics-oriented extension
+
+- [ ] Add robotics semantic fields:
+  - action verbs
+  - object references
+  - state_before/state_after
+  - success signals
+- [ ] Add ROS-friendly export adapter from sidecar metadata.
+- [ ] Add simulation-only test harness for narrated skill videos.
+
+---
+
+## Immediate Next 7 Tasks
+1. Add `OpenTimelineIO` dependency and scaffold `timeline-otio` command.
+2. Freeze OTIO metadata namespace + key list in docs.
+3. Implement `editplan` + `textpack` schema files and validators.
+4. Add `run_report.json` generation to enrichment runs.
+5. Tighten `sampling_plan` prompt/output to reduce retry churn.
+6. Add stage-level timeout config knobs in `config.json`.
+7. Run full regression on `lesson1` and `zac-game` and record baseline telemetry.
