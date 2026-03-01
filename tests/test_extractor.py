@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from course_step_extractor.extractor import (
+from video_skill_extractor.extractor import (
     extract_single_step,
     extract_steps,
     read_clips_manifest_jsonl,
     write_steps_jsonl,
 )
-from course_step_extractor.models import TranscriptSegment
+from video_skill_extractor.models import TranscriptSegment
 
 
 def test_read_clips_manifest_jsonl(tmp_path: Path) -> None:

@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "course-step-extractor"
+name = "video-skill-extractor"
 version = "0.1.0"
 description = "Extract structured markdown steps from course recordings"
 readme = "README.md"
@@ -23,13 +23,13 @@ dev = [
 ]
 
 [project.scripts]
-course-steps = "course_step_extractor.cli:app"
+video-skill = "video_skill_extractor.cli:app"
 
 [tool.uv]
 package = true
 
 [tool.pytest.ini_options]
-addopts = "-q --cov=course_step_extractor --cov-report=term-missing --cov-fail-under=90"
+addopts = "-q --cov=video_skill_extractor --cov-report=term-missing --cov-fail-under=90"
 testpaths = ["tests"]
 pythonpath = ["src"]
 

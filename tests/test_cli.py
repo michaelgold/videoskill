@@ -3,8 +3,8 @@ from pathlib import Path
 
 from typer.testing import CliRunner
 
-import course_step_extractor.cli as cli
-from course_step_extractor.cli import app
+import video_skill_extractor.cli as cli
+from video_skill_extractor.cli import app
 
 runner = CliRunner()
 
@@ -184,7 +184,7 @@ def test_steps_extract_command_ai_mode_with_errors(monkeypatch, tmp_path: Path) 
     out = tmp_path / "steps_ai.jsonl"
 
     def _fake_extract_steps_ai(_provider, _chunks, error_rows=None):
-        from course_step_extractor.models import TutorialStep
+        from video_skill_extractor.models import TutorialStep
 
         if error_rows is not None:
             error_rows.append({"kind": "fake_error", "chunk_id": "chunk_1"})
@@ -246,7 +246,7 @@ def test_steps_extract_command_ai_mode(monkeypatch, tmp_path: Path) -> None:
     out = tmp_path / "steps_ai.jsonl"
 
     def _fake_extract_steps_ai(_provider, _chunks, error_rows=None):
-        from course_step_extractor.models import TutorialStep
+        from video_skill_extractor.models import TutorialStep
 
         return [
             TutorialStep(
@@ -416,7 +416,7 @@ def test_steps_extract_command(monkeypatch, tmp_path: Path) -> None:
 
     def _fake_extract_steps(parsed_segments, clips_by_segment):
         _ = parsed_segments, clips_by_segment
-        from course_step_extractor.models import TutorialStep
+        from video_skill_extractor.models import TutorialStep
 
         return [
             TutorialStep(

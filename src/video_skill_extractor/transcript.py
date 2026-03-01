@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from course_step_extractor.models import TranscriptSegment
+from video_skill_extractor.models import TranscriptSegment
 
 
 def parse_whisper_json(path: Path) -> list[TranscriptSegment]:

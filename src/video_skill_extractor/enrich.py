@@ -8,9 +8,9 @@ from typing import Any, Callable
 
 from pydantic import BaseModel, Field
 
-from course_step_extractor.ai_adapter import run_structured, run_structured_with_images
-from course_step_extractor.models import TutorialStep
-from course_step_extractor.settings import ProviderConfig
+from video_skill_extractor.ai_adapter import run_structured, run_structured_with_images
+from video_skill_extractor.models import TutorialStep
+from video_skill_extractor.settings import ProviderConfig
 
 
 @dataclass

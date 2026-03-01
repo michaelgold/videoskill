@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
-from course_step_extractor.models import TranscriptSegment
+from video_skill_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
+from video_skill_extractor.models import TranscriptSegment
 
 
 def test_plan_frames_generates_start_mid_end_with_clip_windows() -> None:

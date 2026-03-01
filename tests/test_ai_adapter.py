@@ -1,7 +1,7 @@
 import os
 
-from course_step_extractor.ai_adapter import _temporary_env, run_structured
-from course_step_extractor.settings import ProviderConfig
+from video_skill_extractor.ai_adapter import _temporary_env, run_structured
+from video_skill_extractor.settings import ProviderConfig
 
 
 class _FakeResult:
@@ -33,7 +33,7 @@ def test_temporary_env_restores(monkeypatch):
 
 
 def test_run_structured_retries_and_logs(monkeypatch):
-    from course_step_extractor import ai_adapter
+    from video_skill_extractor import ai_adapter
 
     _FakeAgent.calls = 0
     monkeypatch.setattr(ai_adapter, "Agent", _FakeAgent)
@@ -60,7 +60,7 @@ def test_run_structured_retries_and_logs(monkeypatch):
 
 
 def test_run_structured_with_images_backoff(monkeypatch):
-    from course_step_extractor import ai_adapter
+    from video_skill_extractor import ai_adapter
 
     class _FlakyAgent:
         calls = 0
@@ -105,7 +105,7 @@ def test_run_structured_with_images_backoff(monkeypatch):
 
 
 def test_sleep_backoff_zero_is_noop(monkeypatch):
-    from course_step_extractor import ai_adapter
+    from video_skill_extractor import ai_adapter
 
     called = []
     monkeypatch.setattr(ai_adapter.time, "sleep", lambda s: called.append(s))

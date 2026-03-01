@@ -13,6 +13,6 @@ test:
 	uv run pytest
 
 coverage:
-	uv run pytest --cov=course_step_extractor --cov-report=term-missing --cov-fail-under=90
+	uv run pytest --cov=video_skill_extractor --cov-report=term-missing --cov-fail-under=90
 
 verify: lint test

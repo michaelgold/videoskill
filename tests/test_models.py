@@ -1,6 +1,6 @@
 import pytest
 
-from course_step_extractor.models import Step, TranscriptSegment, TutorialStep
+from video_skill_extractor.models import Step, TranscriptSegment, TutorialStep
 
 
 def test_step_model_validates_required_fields() -> None:

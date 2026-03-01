@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from course_step_extractor.frames import (
+from video_skill_extractor.frames import (
     extract_frames_for_steps,
     read_steps_jsonl,
     write_frames_manifest_jsonl,
@@ -35,7 +35,7 @@ def test_write_frames_manifest_jsonl(tmp_path: Path) -> None:
 
 
 def test_extract_frames_for_steps(monkeypatch, tmp_path: Path) -> None:
-    from course_step_extractor import frames as mod
+    from video_skill_extractor import frames as mod
 
     created = []
 
@@ -49,7 +49,7 @@ def test_extract_frames_for_steps(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(mod, "ffmpeg_executable", lambda: "/usr/bin/ffmpeg")
     monkeypatch.setattr(mod.subprocess, "run", _fake_run)
 
-    from course_step_extractor.models import TutorialStep
+    from video_skill_extractor.models import TutorialStep
 
     rows = extract_frames_for_steps(
         video_path=tmp_path / "v.mp4",

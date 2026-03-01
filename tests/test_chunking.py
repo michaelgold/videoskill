@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from course_step_extractor.chunking import chunk_segments, read_chunks_jsonl, write_chunks_jsonl
-from course_step_extractor.models import TranscriptSegment
+from video_skill_extractor.chunking import chunk_segments, read_chunks_jsonl, write_chunks_jsonl
+from video_skill_extractor.models import TranscriptSegment
 
 
 def test_chunk_segments_with_overlap() -> None:

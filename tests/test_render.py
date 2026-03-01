@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from course_step_extractor.render import render_markdown, write_markdown
+from video_skill_extractor.render import render_markdown, write_markdown
 
 
 def test_render_markdown_basic(tmp_path: Path) -> None:

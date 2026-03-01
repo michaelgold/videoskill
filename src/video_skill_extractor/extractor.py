@@ -4,7 +4,7 @@ import json
 import re
 from pathlib import Path
 
-from course_step_extractor.models import TranscriptSegment, TutorialStep
+from video_skill_extractor.models import TranscriptSegment, TutorialStep
 
 
 def read_clips_manifest_jsonl(path: Path) -> dict[str, dict[str, object]]:

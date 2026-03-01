@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from course_step_extractor.models import FrameCandidate, TranscriptSegment
+from video_skill_extractor.models import FrameCandidate, TranscriptSegment
 
 CUE_WORDS = ("now", "next", "then", "add", "switch", "select", "click")
 

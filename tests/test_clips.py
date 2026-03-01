@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from course_step_extractor.clips import (
+from video_skill_extractor.clips import (
     extract_clips,
     read_frames_jsonl,
     unique_segment_windows,
     write_clips_jsonl,
 )
-from course_step_extractor.models import FrameCandidate
+from video_skill_extractor.models import FrameCandidate
 
 
 def test_unique_segment_windows_merges_rows() -> None:
@@ -56,7 +56,7 @@ def test_read_frames_jsonl(tmp_path: Path) -> None:
 
 
 def test_extract_clips_reencode_and_copy(monkeypatch, tmp_path: Path) -> None:
-    from course_step_extractor import clips as mod
+    from video_skill_extractor import clips as mod
 
     calls: list[list[str]] = []
 

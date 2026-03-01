@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import httpx
 
-from course_step_extractor.settings import ProviderConfig
+from video_skill_extractor.settings import ProviderConfig
 
 
 def ping_provider(config: ProviderConfig, path: str = "/") -> dict[str, object]:

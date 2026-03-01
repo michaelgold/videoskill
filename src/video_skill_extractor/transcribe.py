@@ -5,7 +5,7 @@ from pathlib import Path
 
 import httpx
 
-from course_step_extractor.settings import ProviderConfig
+from video_skill_extractor.settings import ProviderConfig
 
 
 def transcribe_video_whisper_openai(

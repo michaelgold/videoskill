@@ -6,7 +6,7 @@ from pathlib import Path
 
 import imageio_ffmpeg
 
-from course_step_extractor.models import FrameCandidate
+from video_skill_extractor.models import FrameCandidate
 
 
 def ffmpeg_executable() -> str:

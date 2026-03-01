@@ -1,4 +1,4 @@
-# BACKLOG.md — course-step-extractor
+# BACKLOG.md — video-skill-extractor
 
 ## Mission
 Turn course recordings into **structured markdown lesson steps** (and later Slidev), with deterministic, schema-validated extraction.

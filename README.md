@@ -1,4 +1,4 @@
-# course-step-extractor
+# video-skill-extractor
 
 Scaffold repo for extracting structured markdown steps from course recordings.
 
@@ -12,7 +12,7 @@ make verify
 ## CLI
 
 ```bash
-uv run course-steps --help
+uv run video-skill --help
 ```
 
 ## Self-hosted model stack (reasoning + VLM + ASR)
@@ -39,6 +39,6 @@ cp config.example.json config.json
 ### 4) Validate and ping providers
 
 ```bash
-uv run course-steps config-validate --config config.json
-uv run course-steps providers-ping --config config.json --path /v1/models
+uv run video-skill config-validate --config config.json
+uv run video-skill providers-ping --config config.json --path /v1/models
 ```

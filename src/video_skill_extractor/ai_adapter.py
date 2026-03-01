@@ -11,7 +11,7 @@ from pydantic_ai.messages import ImageUrl
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
-from course_step_extractor.settings import ProviderConfig
+from video_skill_extractor.settings import ProviderConfig
 
 T = TypeVar("T")
 

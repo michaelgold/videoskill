@@ -1,14 +1,14 @@
 import json
 from pathlib import Path
 
-from course_step_extractor.enrich import (
+from video_skill_extractor.enrich import (
     enrich_steps,
     plan_sampling_for_step,
     read_frames_manifest_jsonl,
     sample_timestamps,
 )
-from course_step_extractor.models import TutorialStep
-from course_step_extractor.settings import ProviderConfig
+from video_skill_extractor.models import TutorialStep
+from video_skill_extractor.settings import ProviderConfig
 
 
 def _step(**kwargs) -> TutorialStep:
@@ -68,7 +68,7 @@ def test_enrich_steps_uses_frame_paths(monkeypatch, tmp_path: Path) -> None:
             "confidence": 0.7,
         }
 
-    from course_step_extractor import enrich as mod
+    from video_skill_extractor import enrich as mod
 
     monkeypatch.setattr(mod, "vlm_motion_judge_with_model", _fake_vlm)
 
@@ -88,7 +88,7 @@ def test_enrich_steps_uses_frame_paths(monkeypatch, tmp_path: Path) -> None:
 
 
 def test_enrich_steps_orchestrates_finalize(monkeypatch) -> None:
-    from course_step_extractor import enrich as mod
+    from video_skill_extractor import enrich as mod
 
     calls = {"final": 0}
 
@@ -127,7 +127,7 @@ def test_enrich_steps_orchestrates_finalize(monkeypatch) -> None:
 
 
 def test_vlm_motion_judge_with_model_success(monkeypatch, tmp_path: Path) -> None:
-    from course_step_extractor import enrich as mod
+    from video_skill_extractor import enrich as mod
 
     img = tmp_path / "a.jpg"
     img.write_bytes(b"fake")
@@ -153,7 +153,7 @@ def test_vlm_motion_judge_with_model_success(monkeypatch, tmp_path: Path) -> Non
 
 
 def test_vlm_motion_judge_with_model_error_path(monkeypatch) -> None:
-    from course_step_extractor import enrich as mod
+    from video_skill_extractor import enrich as mod
 
     monkeypatch.setattr(mod, "_chat_with_images", lambda *a, **k: None)
     cfg = ProviderConfig(
@@ -172,7 +172,7 @@ def test_vlm_motion_judge_with_model_error_path(monkeypatch) -> None:
 
 
 def test_vlm_select_frames_with_model(monkeypatch) -> None:
-    from course_step_extractor import enrich as mod
+    from video_skill_extractor import enrich as mod
 
     def _fake_chat(provider, system, payload_context, frame_paths, output_model, **kwargs):
         _ = provider, system, payload_context, output_model, kwargs
@@ -190,7 +190,7 @@ def test_vlm_select_frames_with_model(monkeypatch) -> None:
 
 
 def test_vlm_signal_pass_with_model(monkeypatch) -> None:
-    from course_step_extractor import enrich as mod
+    from video_skill_extractor import enrich as mod
 
     def _fake_chat(provider, system, payload_context, frame_paths, output_model, **kwargs):
         _ = provider, system, payload_context, output_model, kwargs
@@ -224,7 +224,7 @@ def test_vlm_signal_pass_with_model(monkeypatch) -> None:
 
 
 def test_enrich_steps_two_pass_in_ai_mode(monkeypatch) -> None:
-    from course_step_extractor import enrich as mod
+    from video_skill_extractor import enrich as mod
 
     def _fake_vlm(provider, step, timestamps, frame_paths, error_rows=None):
         _ = provider, step, timestamps, frame_paths, error_rows

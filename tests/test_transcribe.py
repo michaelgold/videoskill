@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from course_step_extractor.settings import ProviderConfig
-from course_step_extractor.transcribe import transcribe_video_whisper_openai
+from video_skill_extractor.settings import ProviderConfig
+from video_skill_extractor.transcribe import transcribe_video_whisper_openai
 
 
 class _Resp:
@@ -45,7 +45,7 @@ def test_transcribe_video_whisper_openai(monkeypatch, tmp_path: Path) -> None:
         def __call__(self, *args, **kwargs):
             return fake
 
-    monkeypatch.setattr("course_step_extractor.transcribe.httpx.Client", _Factory())
+    monkeypatch.setattr("video_skill_extractor.transcribe.httpx.Client", _Factory())
 
     cfg = ProviderConfig(
         provider="speaches",

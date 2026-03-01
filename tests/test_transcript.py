@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from course_step_extractor.transcript import parse_whisper_json, write_segments_jsonl
+from video_skill_extractor.transcript import parse_whisper_json, write_segments_jsonl
 
 
 def test_parse_whisper_json_and_write_jsonl(tmp_path: Path) -> None:

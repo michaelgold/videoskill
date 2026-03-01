@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from course_step_extractor.models import TranscriptSegment
+from video_skill_extractor.models import TranscriptSegment
 
 
 class TranscriptChunk(BaseModel):

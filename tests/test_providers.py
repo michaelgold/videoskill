@@ -1,5 +1,5 @@
-from course_step_extractor.providers import ping_provider
-from course_step_extractor.settings import ProviderConfig
+from video_skill_extractor.providers import ping_provider
+from video_skill_extractor.settings import ProviderConfig
 
 
 class _Resp:
@@ -30,7 +30,7 @@ def test_ping_provider_ok(monkeypatch) -> None:
         def __call__(self, *args, **kwargs):
             return fake
 
-    monkeypatch.setattr("course_step_extractor.providers.httpx.Client", _Factory())
+    monkeypatch.setattr("video_skill_extractor.providers.httpx.Client", _Factory())
     cfg = ProviderConfig(provider="x", base_url="http://127.0.0.1:8000", model="m")
     result = ping_provider(cfg, path="/v1/models")
     assert result["ok"] is True
@@ -44,7 +44,7 @@ def test_ping_provider_includes_auth_header(monkeypatch) -> None:
         def __call__(self, *args, **kwargs):
             return fake
 
-    monkeypatch.setattr("course_step_extractor.providers.httpx.Client", _Factory())
+    monkeypatch.setattr("video_skill_extractor.providers.httpx.Client", _Factory())
     monkeypatch.setenv("TEST_API_KEY", "secret")
     cfg = ProviderConfig(
         provider="x",

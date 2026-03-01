@@ -4,34 +4,34 @@ from pathlib import Path
 
 import typer
 
-from course_step_extractor.chunking import chunk_segments, read_chunks_jsonl, write_chunks_jsonl
-from course_step_extractor.clips import extract_clips, read_frames_jsonl, write_clips_jsonl
-from course_step_extractor.enrich import (
+from video_skill_extractor.chunking import chunk_segments, read_chunks_jsonl, write_chunks_jsonl
+from video_skill_extractor.clips import extract_clips, read_frames_jsonl, write_clips_jsonl
+from video_skill_extractor.enrich import (
     enrich_steps,
     read_frames_manifest_jsonl,
     read_steps_jsonl,
     write_enriched_steps_jsonl,
 )
-from course_step_extractor.extractor import (
+from video_skill_extractor.extractor import (
     extract_steps,
     read_clips_manifest_jsonl,
     write_steps_jsonl,
 )
-from course_step_extractor.extractor_ai import extract_steps_from_chunks_ai
-from course_step_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
-from course_step_extractor.frames import (
+from video_skill_extractor.extractor_ai import extract_steps_from_chunks_ai
+from video_skill_extractor.frame_plan import plan_frames, read_segments_jsonl, write_frames_jsonl
+from video_skill_extractor.frames import (
     extract_frames_for_steps,
     write_frames_manifest_jsonl,
 )
-from course_step_extractor.frames import (
+from video_skill_extractor.frames import (
     read_steps_jsonl as read_steps_for_frames,
 )
-from course_step_extractor.models import Step
-from course_step_extractor.providers import ping_provider
-from course_step_extractor.render import read_jsonl, render_markdown, write_markdown
-from course_step_extractor.settings import AppConfig, validate_config
-from course_step_extractor.transcribe import transcribe_video_whisper_openai
-from course_step_extractor.transcript import parse_whisper_json, write_segments_jsonl
+from video_skill_extractor.models import Step
+from video_skill_extractor.providers import ping_provider
+from video_skill_extractor.render import read_jsonl, render_markdown, write_markdown
+from video_skill_extractor.settings import AppConfig, validate_config
+from video_skill_extractor.transcribe import transcribe_video_whisper_openai
+from video_skill_extractor.transcript import parse_whisper_json, write_segments_jsonl
 
 app = typer.Typer(help="Course step extraction CLI", no_args_is_help=True)
 

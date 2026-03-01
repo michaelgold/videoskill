@@ -1,10 +1,10 @@
-from course_step_extractor.chunking import TranscriptChunk
-from course_step_extractor.extractor_ai import (
+from video_skill_extractor.chunking import TranscriptChunk
+from video_skill_extractor.extractor_ai import (
     ChunkStep,
     ChunkStepResponse,
     extract_steps_from_chunks_ai,
 )
-from course_step_extractor.settings import ProviderConfig
+from video_skill_extractor.settings import ProviderConfig
 
 
 def test_extract_steps_from_chunks_ai(monkeypatch) -> None:
@@ -22,7 +22,7 @@ def test_extract_steps_from_chunks_ai(monkeypatch) -> None:
             ]
         )
 
-    monkeypatch.setattr("course_step_extractor.extractor_ai.run_structured", _fake_run_structured)
+    monkeypatch.setattr("video_skill_extractor.extractor_ai.run_structured", _fake_run_structured)
 
     cfg = ProviderConfig(
         provider="openai-compatible",
@@ -70,7 +70,7 @@ def test_extract_steps_from_chunks_ai_dedupes(monkeypatch) -> None:
             ]
         )
 
-    monkeypatch.setattr("course_step_extractor.extractor_ai.run_structured", _fake_run_structured)
+    monkeypatch.setattr("video_skill_extractor.extractor_ai.run_structured", _fake_run_structured)
 
     cfg = ProviderConfig(
         provider="openai-compatible",

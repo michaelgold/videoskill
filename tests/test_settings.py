@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from course_step_extractor.settings import AppConfig, validate_config
+from video_skill_extractor.settings import AppConfig, validate_config
 
 
 def _valid_payload() -> dict:
