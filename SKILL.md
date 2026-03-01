@@ -1,7 +1,7 @@
 ---
 name: video-skill
 description: Run the video-skill pipeline to convert narrated videos into structured step data and enriched timeline-ready outputs. Use when a user asks to process a video into steps, run transcription/chunking/extraction/enrichment, debug provider connectivity, or generate markdown from extracted skills.
-metadata: { "openclaw": { "emoji": "🎬", "requires": { "bins": ["uv", "git"] } } }
+metadata: { "openclaw": {  "requires": { "bins": ["uv", "ffmpeg", "python3"] } } }
 ---
 
 # Video Skill
