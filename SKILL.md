@@ -10,21 +10,24 @@ Use this skill to run `video-skill` end-to-end or stage-by-stage.
 
 ## First-time setup (no repo clone required)
 
-Install the latest CLI from GitHub using `uv`:
+Use one of these setup paths:
+
+**A) Run from local source repo (recommended while iterating):**
 
 ```bash
-uv tool install --upgrade git+https://github.com/michaelgold/videoskill.git
+cd /path/to/videoskill
+uv sync --dev
+cp config.example.json config.json
 ```
 
-Create a working directory and config:
+Then run commands with `uv run`, for example:
 
 ```bash
-mkdir -p ~/video-skill-work
-cd ~/video-skill-work
-cp /path/to/config.example.json config.json
+uv run video-skill --help
 ```
 
-If you already have a configured `config.json`, use that path directly in commands.
+
+Then run `video-skill ...` directly from your working directory.
 
 Verify providers before processing:
 
