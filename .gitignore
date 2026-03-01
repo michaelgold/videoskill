@@ -8,3 +8,6 @@ __pycache__/
 models/
 config.json
 datasets/
+# packaged skill artifacts
+*.skill
+dist/
