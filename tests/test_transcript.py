@@ -8,7 +8,16 @@ def test_parse_whisper_json_and_write_jsonl(tmp_path: Path) -> None:
     src = tmp_path / "whisper.json"
     payload = {
         "segments": [
-            {"id": 0, "start": 0.0, "end": 1.2, "text": " Hello world "},
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 1.2,
+                "text": " Hello world ",
+                "words": [
+                    {"word": "Hello", "start": 0.0, "end": 0.5},
+                    {"word": "world", "start": 0.5, "end": 1.2},
+                ],
+            },
             {"id": 1, "start": 1.2, "end": 2.0, "text": ""},
             {"id": 2, "start": 2.0, "end": 3.4, "text": "Next step"},
         ]
@@ -18,6 +27,7 @@ def test_parse_whisper_json_and_write_jsonl(tmp_path: Path) -> None:
     segments = parse_whisper_json(src)
     assert len(segments) == 2
     assert segments[0].text == "Hello world"
+    assert len(segments[0].words) == 2
 
     out = tmp_path / "segments.jsonl"
     write_segments_jsonl(segments, out)

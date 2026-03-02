@@ -4,7 +4,12 @@ from pathlib import Path
 
 import typer
 
-from video_skill_extractor.chunking import chunk_segments, read_chunks_jsonl, write_chunks_jsonl
+from video_skill_extractor.chunking import (
+    chunk_segments,
+    chunk_segments_word_timing,
+    read_chunks_jsonl,
+    write_chunks_jsonl,
+)
 from video_skill_extractor.clips import extract_clips, read_frames_jsonl, write_clips_jsonl
 from video_skill_extractor.enrich import (
     enrich_steps,
@@ -102,9 +107,14 @@ def transcript_chunk(
     out: Path = typer.Option(..., help="Output chunk JSONL"),
     window_s: float = typer.Option(120.0, help="Chunk window in seconds"),
     overlap_s: float = typer.Option(15.0, help="Overlap between consecutive chunks"),
+    use_word_times: bool = typer.Option(False, help="Use per-word timing when available"),
 ) -> None:
     parsed = read_segments_jsonl(segments)
-    chunks = chunk_segments(parsed, window_s=window_s, overlap_s=overlap_s)
+    chunks = (
+        chunk_segments_word_timing(parsed, window_s=window_s, overlap_s=overlap_s)
+        if use_word_times
+        else chunk_segments(parsed, window_s=window_s, overlap_s=overlap_s)
+    )
     write_chunks_jsonl(chunks, out)
     typer.echo(f"chunks={len(chunks)} out={out}")
 

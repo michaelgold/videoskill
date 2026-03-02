@@ -161,6 +161,7 @@ def test_transcript_chunk_command(tmp_path: Path) -> None:
             "40",
             "--overlap-s",
             "10",
+            "--use-word-times",
         ],
     )
     assert result.exit_code == 0

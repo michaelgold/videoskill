@@ -6,11 +6,24 @@ class Step(BaseModel):
     description: str = Field(min_length=1)
 
 
+class TranscriptWord(BaseModel):
+    word: str = Field(min_length=1)
+    start_s: float = Field(ge=0)
+    end_s: float = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _validate_times(self) -> "TranscriptWord":
+        if self.end_s < self.start_s:
+            raise ValueError("end_s must be >= start_s")
+        return self
+
+
 class TranscriptSegment(BaseModel):
     segment_id: str = Field(min_length=1)
     start_s: float = Field(ge=0)
     end_s: float = Field(ge=0)
     text: str = Field(min_length=1)
+    words: list[TranscriptWord] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _validate_times(self) -> "TranscriptSegment":

@@ -13,7 +13,7 @@ def transcribe_video_whisper_openai(
     video_path: Path,
     out_path: Path,
     response_format: str = "verbose_json",
-    timestamp_granularities: str = "segment",
+    timestamp_granularities: str = "word,segment",
 ) -> dict:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -26,10 +26,16 @@ def transcribe_video_whisper_openai(
     with httpx.Client(timeout=provider.timeout_s) as client:
         with video_path.open("rb") as f:
             files = {"file": (video_path.name, f, "video/mp4")}
+            granularities = [
+                g.strip()
+                for g in str(timestamp_granularities).split(",")
+                if g.strip()
+            ]
             data = {
                 "model": provider.model,
                 "response_format": response_format,
-                "timestamp_granularities": timestamp_granularities,
+                "timestamp_granularities[]": granularities,
+                "without_timestamps": "false",
             }
             res = client.post(endpoint, files=files, data=data, headers=headers)
             res.raise_for_status()

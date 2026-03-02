@@ -64,3 +64,4 @@ def test_transcribe_video_whisper_openai(monkeypatch, tmp_path: Path) -> None:
     assert loaded["segments"][0]["id"] == 0
     assert fake.last_url.endswith("/v1/audio/transcriptions")
     assert fake.last_data["model"] == "Systran/faster-whisper-medium"
+    assert "word" in fake.last_data["timestamp_granularities[]"]

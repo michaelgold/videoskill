@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from video_skill_extractor.models import TranscriptSegment
+from video_skill_extractor.models import TranscriptSegment, TranscriptWord
 
 
 def parse_whisper_json(path: Path) -> list[TranscriptSegment]:
@@ -14,12 +14,30 @@ def parse_whisper_json(path: Path) -> list[TranscriptSegment]:
         text = str(item.get("text", "")).strip()
         if not text:
             continue
+        raw_words = item.get("words", [])
+        words: list[TranscriptWord] = []
+        for rw in raw_words:
+            wtxt = str(rw.get("word", rw.get("text", ""))).strip()
+            if not wtxt:
+                continue
+            try:
+                words.append(
+                    TranscriptWord(
+                        word=wtxt,
+                        start_s=float(rw.get("start", item.get("start", 0.0))),
+                        end_s=float(rw.get("end", item.get("end", 0.0))),
+                    )
+                )
+            except Exception:
+                continue
+
         segments.append(
             TranscriptSegment(
                 segment_id=str(item.get("id", idx)),
                 start_s=float(item.get("start", 0.0)),
                 end_s=float(item.get("end", 0.0)),
                 text=text,
+                words=words,
             )
         )
     return segments
