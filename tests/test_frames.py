@@ -41,10 +41,21 @@ def test_extract_frames_for_steps(monkeypatch, tmp_path: Path) -> None:
 
     def _fake_run(cmd, check, capture_output, text):
         _ = check, capture_output, text
+        if cmd and cmd[0] == "ffprobe":
+            class _R:
+                stdout = "2.0\n"
+
+            return _R()
+
         out = Path(cmd[-1])
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_bytes(b"jpg")
         created.append(out)
+
+        class _R:
+            stdout = ""
+
+        return _R()
 
     monkeypatch.setattr(mod, "ffmpeg_executable", lambda: "/usr/bin/ffmpeg")
     monkeypatch.setattr(mod.subprocess, "run", _fake_run)

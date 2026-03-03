@@ -105,7 +105,7 @@ def chunk_segments_word_timing(
             unit_end = w.end_s
             current_words.append(token)
 
-            is_boundary = token.endswith((".", "!", "?"))
+            is_boundary = token.endswith((".", "!", "?", ",", ";", ":", "—", "--"))
             if is_boundary:
                 text = " ".join(current_words).strip()
                 if text and unit_start is not None and unit_end is not None:

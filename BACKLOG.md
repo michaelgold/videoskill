@@ -108,11 +108,62 @@ Build a generalized **video skill extraction library** that converts narrated vi
 
 ---
 
-## Immediate Next 7 Tasks
+## Immediate Next 10 Tasks
 1. Add `OpenTimelineIO` dependency and scaffold `timeline-otio` command.
 2. Freeze OTIO metadata namespace + key list in docs.
-3. Implement `editplan` + `textpack` schema files and validators.
-4. Add `run_report.json` generation to enrichment runs.
-5. Tighten `sampling_plan` prompt/output to reduce retry churn.
-6. Add stage-level timeout config knobs in `config.json`.
-7. Run full regression on `lesson1` and `zac-game` and record baseline telemetry.
+3. Implement `chapters-generate` from enriched steps.
+4. Implement `clips-select` for short tutorial candidate ranking.
+5. Implement `textpack-generate` (headline, bullets, emphasis terms).
+6. Add `run_report.json` generation to enrichment runs.
+7. Tighten `sampling_plan` prompt/output to reduce retry churn.
+8. Add stage-level timeout config knobs in `config.json`.
+9. Add long-class acceptance fixture and expected output checks.
+10. Run full regression on `lesson1` + `zac-game` + one long-form class sample.
+
+
+## P1.4 Course repurposing (YouTube course + short tutorials)
+
+### Goals
+- [ ] Convert long classes (e.g., 3-hour recordings) into:
+  - a chaptered long-form course cut
+  - a set of short tutorial clips
+- [ ] Keep outputs editor-friendly and deterministic.
+
+### Deliverables
+- [ ] `chapters-generate` command from enriched steps:
+  - outputs YouTube chapter timestamps + titles
+  - optional markdown chapter sheet
+- [ ] `clips-select` command:
+  - ranks step windows for short-form potential
+  - supports target durations (30–60s, 60–120s, 2–5m)
+  - emits `shorts_manifest.jsonl`
+- [ ] `textpack-generate` command:
+  - per-step headline, bullets, emphasis keywords
+  - on-screen text constraints for animation overlays
+- [ ] `pipeline-course` orchestration command:
+  - parse -> chunk -> extract -> frames -> enrich -> chapters -> clips -> textpack
+
+### Quality gates
+- [ ] Chapter coverage: >=95% of enriched steps mapped to chapter ranges.
+- [ ] Shorts precision: >=80% human-accepted clips in top-ranked batch.
+- [ ] Textpack readability constraints enforced (char/line limits).
+
+---
+
+## Execution Plan (next 3 sprints)
+
+### Sprint 1 — OTIO + chaptering foundation
+- [ ] Add `OpenTimelineIO` dependency and `timeline-otio` command.
+- [ ] Freeze metadata namespace and mapping doc.
+- [ ] Ship `chapters-generate` with regression tests.
+- [ ] Add `run_report.json` telemetry output.
+
+### Sprint 2 — Shorts extraction + textpack
+- [ ] Implement `clips-select` scoring/ranking.
+- [ ] Implement `textpack-generate` on transcript+enriched context.
+- [ ] Add fixtures for long-form class input and acceptance tests.
+
+### Sprint 3 — Editor handoff + polish
+- [ ] Add `.otioz` export option and manifest bundling.
+- [ ] Produce editor handoff bundle (`.otio`, manifests, markdown, clip list).
+- [ ] Pilot on one 3-hour class and measure keep/delete/edit rates.

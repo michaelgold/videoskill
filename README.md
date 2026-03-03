@@ -38,7 +38,39 @@ uv run pytest -q
 
 ---
 
-## 3) Model setup (local/self-hosted)
+## 3) OpenClaw / ClawHub installation
+
+If you want to run this through OpenClaw as a skill:
+
+```bash
+# install skill from ClawHub into your OpenClaw workspace
+npx -y clawhub install video-skill --workdir ~/.openclaw/workspace
+```
+
+The skill installs to:
+
+- `~/.openclaw/workspace/skills/video-skill`
+
+Then in that directory:
+
+```bash
+cd ~/.openclaw/workspace/skills/video-skill
+uv sync --dev
+cp config.example.json config.json
+```
+
+Validate provider endpoints before first run:
+
+```bash
+uv run video-skill config-validate --config config.json
+uv run video-skill providers-ping --config config.json --path /v1/models
+```
+
+You can now run the same commands documented below from this installed skill directory.
+
+---
+
+## 4) Model setup (local/self-hosted)
 
 ### A. Download models
 
@@ -60,7 +92,7 @@ docker compose -f deploy/docker-compose.models.yml ps
 
 ---
 
-## 4) Configure `config.json`
+## 5) Configure `config.json`
 
 Create from template:
 
@@ -84,7 +116,7 @@ uv run video-skill providers-ping --config config.json --path /v1/models
 
 ---
 
-## 5) CLI quick usage
+## 6) CLI quick usage
 
 ```bash
 uv run video-skill --help
@@ -101,7 +133,7 @@ Key commands:
 
 ---
 
-## 6) End-to-end run (manual stages)
+## 7) End-to-end run (manual stages)
 
 Example video: `datasets/demo/zac-game.mp4`
 
@@ -158,7 +190,7 @@ uv run video-skill markdown-render \
 
 ---
 
-## 7) Enrichment modes
+## 8) Enrichment modes
 
 - `--mode heuristic`
   - no model calls; deterministic baseline
@@ -174,7 +206,7 @@ uv run video-skill markdown-render \
 
 ---
 
-## 8) Testing and quality gates
+## 9) Testing and quality gates
 
 ```bash
 make verify
@@ -184,7 +216,7 @@ This runs lint + tests with coverage gate (`>=90%`).
 
 ---
 
-## 9) Output artifacts
+## 10) Output artifacts
 
 Typical outputs:
 - `*.whisper.json`
@@ -197,6 +229,6 @@ Typical outputs:
 
 ---
 
-## 10) Next direction
+## 11) Next direction
 
 The project is evolving toward a generalized video skill library with OTIO-ready timeline metadata and editor/robotics adapters.
