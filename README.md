@@ -102,6 +102,7 @@ cp config.example.json config.json
 
 Set the 3 provider roles:
 - `transcription` → Whisper/OpenAI-compatible ASR endpoint
+  - supports optional `language` (default `"en"`; use `"auto"` to enable autodetect)
 - `reasoning` → reasoning model endpoint
 - `vlm` → vision-language model endpoint
 
@@ -143,6 +144,7 @@ uv run video-skill transcribe \
   --video datasets/demo/zac-game.mp4 \
   --out datasets/demo/zac-game.whisper.json \
   --config config.json
+# optional override: --language auto  (or --language es, --language fr, ...)
 
 # 2) Parse transcript
 uv run video-skill transcript-parse \

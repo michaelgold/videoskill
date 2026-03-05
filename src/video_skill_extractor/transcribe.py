@@ -14,6 +14,7 @@ def transcribe_video_whisper_openai(
     out_path: Path,
     response_format: str = "verbose_json",
     timestamp_granularities: str = "word,segment",
+    language: str = "en",
 ) -> dict:
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -37,6 +38,8 @@ def transcribe_video_whisper_openai(
                 "timestamp_granularities[]": granularities,
                 "without_timestamps": "false",
             }
+            if language and language.lower() != "auto":
+                data["language"] = language
             res = client.post(endpoint, files=files, data=data, headers=headers)
             res.raise_for_status()
             payload = res.json()

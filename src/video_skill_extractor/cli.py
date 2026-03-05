@@ -79,11 +79,24 @@ def transcribe(
     video: Path = typer.Option(..., help="Path to source video file"),
     out: Path = typer.Option(..., help="Output Whisper JSON path"),
     config: Path = typer.Option(Path("config.json"), help="Provider config path"),
+    language: str | None = typer.Option(
+        None,
+        help=(
+            "Transcription language (default from config, typically 'en'). "
+            "Use 'auto' for autodetect."
+        ),
+    ),
 ) -> None:
     cfg = AppConfig.load(config)
-    payload = transcribe_video_whisper_openai(cfg.transcription, video, out)
+    selected_language = language if language is not None else cfg.transcription.language
+    payload = transcribe_video_whisper_openai(
+        cfg.transcription,
+        video,
+        out,
+        language=selected_language,
+    )
     seg_count = len(payload.get("segments", [])) if isinstance(payload, dict) else 0
-    typer.echo(f"transcribed_segments={seg_count} out={out}")
+    typer.echo(f"transcribed_segments={seg_count} out={out} language={selected_language}")
 
 
 @app.command("transcript-parse")

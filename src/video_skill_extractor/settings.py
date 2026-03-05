@@ -20,8 +20,12 @@ class ProviderConfig(BaseModel):
         return os.getenv(self.api_key_env)
 
 
+class TranscriptionConfig(ProviderConfig):
+    language: str = "en"
+
+
 class AppConfig(BaseModel):
-    transcription: ProviderConfig
+    transcription: TranscriptionConfig
     reasoning: ProviderConfig
     vlm: ProviderConfig
 

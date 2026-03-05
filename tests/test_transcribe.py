@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from video_skill_extractor.settings import ProviderConfig
+from video_skill_extractor.settings import TranscriptionConfig
 from video_skill_extractor.transcribe import transcribe_video_whisper_openai
 
 
@@ -47,7 +47,7 @@ def test_transcribe_video_whisper_openai(monkeypatch, tmp_path: Path) -> None:
 
     monkeypatch.setattr("video_skill_extractor.transcribe.httpx.Client", _Factory())
 
-    cfg = ProviderConfig(
+    cfg = TranscriptionConfig(
         provider="speaches",
         base_url="http://localhost:8000",
         model="Systran/faster-whisper-medium",
@@ -65,3 +65,30 @@ def test_transcribe_video_whisper_openai(monkeypatch, tmp_path: Path) -> None:
     assert fake.last_url.endswith("/v1/audio/transcriptions")
     assert fake.last_data["model"] == "Systran/faster-whisper-medium"
     assert "word" in fake.last_data["timestamp_granularities[]"]
+    assert fake.last_data["language"] == "en"
+
+
+def test_transcribe_video_whisper_openai_auto_language_omits_field(
+    monkeypatch, tmp_path: Path
+) -> None:
+    payload = {"segments": []}
+    fake = _Client(payload)
+
+    class _Factory:
+        def __call__(self, *args, **kwargs):
+            return fake
+
+    monkeypatch.setattr("video_skill_extractor.transcribe.httpx.Client", _Factory())
+
+    cfg = TranscriptionConfig(
+        provider="speaches",
+        base_url="http://localhost:8000",
+        model="Systran/faster-whisper-medium",
+        timeout_s=30,
+    )
+    video = tmp_path / "demo.mp4"
+    video.write_bytes(b"video")
+    out = tmp_path / "whisper.json"
+
+    transcribe_video_whisper_openai(cfg, video, out, language="auto")
+    assert "language" not in fake.last_data

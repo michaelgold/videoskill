@@ -82,8 +82,11 @@ def test_transcribe_command(monkeypatch, tmp_path: Path) -> None:
     video.write_bytes(b"vid")
     out = tmp_path / "whisper.json"
 
-    def _fake_transcribe(provider, video_path, out_path):
+    seen = {}
+
+    def _fake_transcribe(provider, video_path, out_path, language="en"):
         _ = provider, video_path
+        seen["language"] = language
         payload = {"segments": [{"id": 0, "start": 0.0, "end": 1.0, "text": "hello"}]}
         out_path.write_text(json.dumps(payload), encoding="utf-8")
         return payload
@@ -104,6 +107,43 @@ def test_transcribe_command(monkeypatch, tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert out.exists()
     assert "transcribed_segments=1" in result.stdout
+    assert "language=en" in result.stdout
+    assert seen["language"] == "en"
+
+
+def test_transcribe_command_language_override(monkeypatch, tmp_path: Path) -> None:
+    cfg_path = _config_file(tmp_path)
+    video = tmp_path / "demo.mp4"
+    video.write_bytes(b"vid")
+    out = tmp_path / "whisper.json"
+
+    seen = {}
+
+    def _fake_transcribe(provider, video_path, out_path, language="en"):
+        _ = provider, video_path
+        seen["language"] = language
+        payload = {"segments": [{"id": 0, "start": 0.0, "end": 1.0, "text": "hello"}]}
+        out_path.write_text(json.dumps(payload), encoding="utf-8")
+        return payload
+
+    monkeypatch.setattr(cli, "transcribe_video_whisper_openai", _fake_transcribe)
+    result = runner.invoke(
+        app,
+        [
+            "transcribe",
+            "--video",
+            str(video),
+            "--out",
+            str(out),
+            "--config",
+            str(cfg_path),
+            "--language",
+            "auto",
+        ],
+    )
+    assert result.exit_code == 0
+    assert seen["language"] == "auto"
+    assert "language=auto" in result.stdout
 
 
 def test_transcript_parse_command(tmp_path: Path) -> None:
