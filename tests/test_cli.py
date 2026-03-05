@@ -579,3 +579,101 @@ def test_clips_extract_command(monkeypatch, tmp_path: Path) -> None:
     assert result.exit_code == 0
     assert manifest.exists()
     assert "clips=1" in result.stdout
+
+
+
+
+
+def test_steps_normalize_command(tmp_path: Path) -> None:
+    steps = tmp_path / "enriched.jsonl"
+    steps.write_text(
+        "{"
+        '"step_id":"step_1",'
+        '"start_s":0,'
+        '"end_s":1,'
+        '"clip_end_s":1,'
+        '"instruction_text":"Open menu",'
+        '"enrichment":{"vlm_judgement":{"summary":"ok","confidence":0.9}}'
+        "}\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "normalized.jsonl"
+    result = runner.invoke(app, ["steps-normalize", "--steps", str(steps), "--out", str(out)])
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "normalized_steps=1" in result.stdout
+
+
+def test_steps_align_transcript_command(tmp_path: Path) -> None:
+    steps = tmp_path / "steps.jsonl"
+    steps.write_text(
+        "{"
+        '"step_id":"step_1",'
+        '"start_s":0.0,'
+        '"end_s":1.0,'
+        '"instruction_text":"Do x"'
+        "}\n",
+        encoding="utf-8",
+    )
+    segments = tmp_path / "segments.jsonl"
+    segments.write_text(
+        "{"
+        '"segment_id":"1",'
+        '"start_s":0.0,'
+        '"end_s":1.2,'
+        '"text":"Do x now"'
+        "}\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "aligned.jsonl"
+    result = runner.invoke(
+        app,
+        [
+            "steps-align-transcript",
+            "--steps",
+            str(steps),
+            "--segments",
+            str(segments),
+            "--out",
+            str(out),
+            "--snippet-count",
+            "1",
+        ],
+    )
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "aligned_steps=1" in result.stdout
+
+
+
+def test_steps_calibrate_command(tmp_path: Path) -> None:
+    steps = tmp_path / "aligned.jsonl"
+    steps.write_text(
+        "{"
+        '"step_id":"step_1",'
+        '"enrichment":{'
+        '    "vlm_judgement":{"summary":"No evidence detected","confidence":0.95},'
+        '    "signal_pass":{"changes_detected":["no changes"]}'
+        '},'
+        '"transcript_support":{"alignment_confidence":0.2}'
+        "}\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "calibrated.jsonl"
+    result = runner.invoke(
+        app,
+        [
+            "steps-calibrate",
+            "--steps",
+            str(steps),
+            "--out",
+            str(out),
+            "--weak-conf-cap",
+            "0.25",
+            "--weak-alignment-threshold",
+            "0.4",
+        ],
+    )
+    assert result.exit_code == 0
+    assert out.exists()
+    assert "calibrated_steps=1" in result.stdout

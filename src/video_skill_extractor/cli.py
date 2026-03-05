@@ -32,6 +32,13 @@ from video_skill_extractor.frames import (
     read_steps_jsonl as read_steps_for_frames,
 )
 from video_skill_extractor.models import Step
+from video_skill_extractor.postprocess import (
+    align_steps_with_transcript,
+    calibrate_steps,
+    normalize_steps,
+    read_jsonl_rows,
+    write_jsonl_rows,
+)
 from video_skill_extractor.providers import ping_provider
 from video_skill_extractor.render import read_jsonl, render_markdown, write_markdown
 from video_skill_extractor.settings import AppConfig, validate_config
@@ -254,6 +261,53 @@ def steps_enrich(
         )
     typer.echo(f"enriched_steps={len(rows)} out={out} mode={mode}")
 
+
+
+
+@app.command("steps-normalize")
+def steps_normalize(
+    steps: Path = typer.Option(..., help="Input enriched steps JSONL"),
+    out: Path = typer.Option(..., help="Output normalized steps JSONL"),
+) -> None:
+    rows = read_jsonl_rows(steps)
+    norm = normalize_steps(rows)
+    write_jsonl_rows(norm, out)
+    typer.echo(f"normalized_steps={len(norm)} out={out}")
+
+
+@app.command("steps-align-transcript")
+def steps_align_transcript(
+    steps: Path = typer.Option(..., help="Input normalized/enriched steps JSONL"),
+    segments: Path = typer.Option(..., help="Transcript segments JSONL"),
+    out: Path = typer.Option(..., help="Output transcript-aligned steps JSONL"),
+    snippet_count: int = typer.Option(2, help="Number of supporting snippets per step"),
+) -> None:
+    rows = read_jsonl_rows(steps)
+    parsed_segments = read_segments_jsonl(segments)
+    aligned = align_steps_with_transcript(rows, parsed_segments, snippet_count=snippet_count)
+    write_jsonl_rows(aligned, out)
+    typer.echo(f"aligned_steps={len(aligned)} out={out}")
+
+
+
+@app.command("steps-calibrate")
+def steps_calibrate(
+    steps: Path = typer.Option(..., help="Input normalized/aligned steps JSONL"),
+    out: Path = typer.Option(..., help="Output calibrated steps JSONL"),
+    weak_conf_cap: float = typer.Option(0.25, help="Confidence cap for weak evidence summaries"),
+    weak_alignment_threshold: float = typer.Option(
+        0.4,
+        help="Transcript alignment threshold below which confidence is downweighted",
+    ),
+) -> None:
+    rows = read_jsonl_rows(steps)
+    calibrated = calibrate_steps(
+        rows,
+        weak_conf_cap=weak_conf_cap,
+        weak_alignment_threshold=weak_alignment_threshold,
+    )
+    write_jsonl_rows(calibrated, out)
+    typer.echo(f"calibrated_steps={len(calibrated)} out={out}")
 
 @app.command("markdown-render")
 def markdown_render(
