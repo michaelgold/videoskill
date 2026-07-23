@@ -170,7 +170,9 @@ def clips_extract(
 @app.command("steps-extract")
 def steps_extract(
     segments: Path = typer.Option(..., help="Path to transcript segments JSONL"),
-    clips_manifest: Path = typer.Option(..., help="Path to clips manifest JSONL"),
+    clips_manifest: Path | None = typer.Option(
+        None, help="Path to clips manifest JSONL (required for scaffold mode)"
+    ),
     out: Path = typer.Option(..., help="Output TutorialStep JSONL"),
     mode: str = typer.Option("scaffold", help="scaffold|ai"),
     chunks: Path | None = typer.Option(
@@ -179,8 +181,6 @@ def steps_extract(
     ),
     config: Path = typer.Option(Path("config.json"), help="Provider config path for ai mode"),
 ) -> None:
-    clips_by_segment = read_clips_manifest_jsonl(clips_manifest)
-
     error_rows: list[dict[str, object]] = []
     if mode == "ai":
         if chunks is None:
@@ -189,6 +189,9 @@ def steps_extract(
         parsed_chunks = read_chunks_jsonl(chunks)
         steps = extract_steps_from_chunks_ai(cfg.reasoning, parsed_chunks, error_rows=error_rows)
     else:
+        if clips_manifest is None:
+            raise typer.BadParameter("--clips-manifest is required when --mode scaffold")
+        clips_by_segment = read_clips_manifest_jsonl(clips_manifest)
         parsed_segments = read_segments_jsonl(segments)
         steps = extract_steps(parsed_segments, clips_by_segment)
 
@@ -275,8 +278,6 @@ def steps_enrich(
     typer.echo(f"enriched_steps={len(rows)} out={out} mode={mode}")
 
 
-
-
 @app.command("steps-normalize")
 def steps_normalize(
     steps: Path = typer.Option(..., help="Input enriched steps JSONL"),
@@ -302,7 +303,6 @@ def steps_align_transcript(
     typer.echo(f"aligned_steps={len(aligned)} out={out}")
 
 
-
 @app.command("steps-calibrate")
 def steps_calibrate(
     steps: Path = typer.Option(..., help="Input normalized/aligned steps JSONL"),
@@ -321,6 +321,7 @@ def steps_calibrate(
     )
     write_jsonl_rows(calibrated, out)
     typer.echo(f"calibrated_steps={len(calibrated)} out={out}")
+
 
 @app.command("markdown-render")
 def markdown_render(
