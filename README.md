@@ -2,6 +2,10 @@
 
 `video-skill-extractor` turns narrated videos into structured, timeline-ready skill steps.
 
+For the broader Teaching & courses direction, see [PROJECT.md](PROJECT.md).
+This repository supplies shared production-support tooling, not the whole teaching product;
+[BACKLOG.md](BACKLOG.md) remains the component's historical engineering backlog.
+
 Current pipeline supports:
 - transcription (OpenAI-compatible Whisper endpoint)
 - transcript parsing + chunking
